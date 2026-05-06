@@ -1,7 +1,7 @@
   .teacher-container {
     display: flex;
     height: 100vh;
-    background-color: #1a2b08;
+    background-color: #d5f1d5;
   }
 
   .slide-area {
@@ -29,7 +29,7 @@
     align-items: center;
     margin-top: 12px;
     padding: 10px;
-    background-color: #6b8f2b;
+    background-color: #8ab336;
     border-top: 1px solid rgba(0,0,0,0.15);
     border-radius: 8px;
   }
@@ -137,7 +137,7 @@
     height: 100vh;
     font-size: 1.1rem;
     color: #6b8f2b;
-    background: #1a2b08;
+    background: #d5f1d5;
   }
 
   /* ── Lobby overlay (modal over slides) ──────────────────────────── */
@@ -158,14 +158,14 @@
   .lobby-card {
     position: relative;
     width: min(520px, 92vw);
-    background: rgba(26, 43, 8, 0.92);
-    border: 1px solid rgba(107,143,43,0.35);
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid rgba(107,143,43,0.4);
     border-radius: 16px;
     padding: 32px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.25);
   }
 
   .lobby-close-btn {
@@ -175,16 +175,16 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: #d5f1d5;
+    background: rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.10);
+    color: #1a2b08;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background 0.15s;
   }
-  .lobby-close-btn:hover { background: rgba(255,255,255,0.16); }
+  .lobby-close-btn:hover { background: rgba(0,0,0,0.12); }
 
   /* Session code chip in nav bar */
   .lobby-code-chip {
@@ -213,23 +213,23 @@
   }
 
   .lobby-url-box {
-    background: rgba(0,0,0,0.30);
+    background: rgba(107,143,43,0.07);
     border-radius: 10px;
     padding: 14px 20px;
     text-align: center;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #d5f1d5;
+    color: #1a2b08;
     letter-spacing: 0.04em;
-    border: 1px solid rgba(107,143,43,0.35);
+    border: 1px solid rgba(107,143,43,0.3);
   }
 
   .lobby-code-box {
-    background: rgba(0,0,0,0.30);
+    background: rgba(107,143,43,0.07);
     border-radius: 10px;
     padding: 24px 20px 20px;
     text-align: center;
-    border: 1px solid rgba(107,143,43,0.35);
+    border: 1px solid rgba(107,143,43,0.3);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -247,7 +247,7 @@
   .lobby-code {
     font-size: clamp(2rem, 8vw, 3.5rem);
     font-weight: 800;
-    color: #ffffff;
+    color: #1a2b08;
     letter-spacing: 0.18em;
     margin: 4px 0 12px;
     font-variant-numeric: tabular-nums;
@@ -290,7 +290,7 @@
     align-items: center;
     gap: 7px;
     font-size: 0.85rem;
-    color: #d5f1d5;
+    color: #1a2b08;
     font-weight: 500;
   }
 
@@ -314,7 +314,7 @@
     gap: 6px;
     background: transparent;
     border: none;
-    color: #d5f1d5;
+    color: #1a2b08;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
@@ -324,7 +324,7 @@
   }
 
   .lobby-copy-btn:hover {
-    background: #ffffff18;
+    background: rgba(0,0,0,0.07);
   }
 
   .lobby-start-btn {
@@ -356,7 +356,7 @@
     bottom: 32px;
     left: 50%;
     transform: translateX(-50%) translateY(16px);
-    background: rgba(0,0,0,0.75);
+    background: #1a2b08;
     color: #d5f1d5;
     border: 1px solid #6b8f2b60;
     border-radius: 8px;
