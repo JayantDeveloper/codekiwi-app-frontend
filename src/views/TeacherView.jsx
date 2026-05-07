@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import Slides from "../components/Slides";
 import NavigationBar from "../components/NavigationBar";
 import NotesSidebar from "../components/NotesSidebar";
@@ -26,6 +27,7 @@ export default function TeacherView() {
   );
   const [hasStarted, setHasStarted] = useState(false);
   const [studentCount, setStudentCount] = useState(0);
+  const [studentNames, setStudentNames] = useState([]);
   const [linkCopied, setLinkCopied] = useState(false);
   const toastTimerRef = useRef(null);
 
@@ -56,7 +58,9 @@ export default function TeacherView() {
       try {
         const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`);
         const data = await res.json();
-        setStudentCount((data.students || []).length);
+        const students = data.students || [];
+        setStudentCount(students.length);
+        setStudentNames(students.map((s) => s.name));
       } catch { /* silent */ }
     };
     poll();
@@ -100,16 +104,43 @@ export default function TeacherView() {
               </svg>
             </button>
 
-            <div className="lobby-url-box">codekiwi.app</div>
-
-            <div className="lobby-code-box">
-              <p className="lobby-code-label">Session Code</p>
-              <p className="lobby-code">{sessionCode}</p>
-              <div className="lobby-waiting">
-                <span className="lobby-spinner" />
-                Waiting for students…
+            {/* Two-column layout: code info + QR */}
+            <div style={{ display: "flex", gap: "20px", alignItems: "flex-start", marginBottom: "16px" }}>
+              <div style={{ flex: 1 }}>
+                <div className="lobby-url-box">codekiwi.app</div>
+                <div className="lobby-code-box" style={{ marginBottom: 0 }}>
+                  <p className="lobby-code-label">Session Code</p>
+                  <p className="lobby-code">{sessionCode}</p>
+                  <div className="lobby-waiting">
+                    <span className="lobby-spinner" />
+                    Waiting for students…
+                  </div>
+                </div>
+              </div>
+              <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                <QRCodeSVG
+                  value={`${JOIN_BASE}/${sessionCode}`}
+                  size={110}
+                  bgColor="#ffffff"
+                  fgColor="#3d5a13"
+                  level="M"
+                />
+                <span style={{ fontSize: "0.7rem", color: "#6b8f2b", opacity: 0.7 }}>Scan to join</span>
               </div>
             </div>
+
+            {/* Student name list */}
+            {studentNames.length > 0 && (
+              <div style={{ background: "#f0f7e6", borderRadius: "10px", padding: "10px 12px", marginBottom: "12px", maxHeight: "90px", overflowY: "auto" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {studentNames.map((name, i) => (
+                    <span key={i} style={{ background: "#a8d05f33", color: "#3d5a13", borderRadius: "20px", padding: "2px 10px", fontSize: "0.78rem", fontWeight: 500 }}>
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="lobby-footer-row">
               <div className="lobby-student-count">
@@ -159,6 +190,7 @@ export default function TeacherView() {
           sessionCode={sessionCode}
           editorsLocked={editorsLocked}
           onToggleLock={toggleLock}
+          slideInfo={slides.length > 0 ? { current: currentIndex, total: slides.length } : null}
           leftButtons={[
             <button
               key="prev"

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import "../views/TeacherView.css";
 import { BACKEND_BASE_URL } from "../config";
 
-export default function NavigationBar({ leftButtons, sessionCode, editorsLocked, onToggleLock }) {
+export default function NavigationBar({ leftButtons, sessionCode, editorsLocked, onToggleLock, slideInfo }) {
   const [studentCount, setStudentCount] = useState(0);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     const fetchStudentCount = async () => {
@@ -21,6 +22,7 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
   }, [sessionCode]);
 
   const handleEndSession = async () => {
+    setShowConfirm(false);
     try {
       const resp = await fetch(
         `${BACKEND_BASE_URL}/api/sessions/${sessionCode}/end`,
@@ -43,6 +45,31 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
   };
 
   return (
+    <>
+    {showConfirm && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "#fff", borderRadius: "16px", padding: "32px 28px", maxWidth: "360px", width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", textAlign: "center" }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <p style={{ fontWeight: 700, fontSize: "1rem", color: "#1a1a1a", marginBottom: "8px" }}>End this session?</p>
+          <p style={{ fontSize: "0.85rem", color: "#666", marginBottom: "24px" }}>
+            All students will be disconnected. This cannot be undone.
+          </p>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <button onClick={() => setShowConfirm(false)} style={{ padding: "8px 20px", borderRadius: "8px", border: "1px solid #e5e7eb", background: "#fff", fontSize: "0.875rem", cursor: "pointer", color: "#374151" }}>
+              Cancel
+            </button>
+            <button onClick={handleEndSession} style={{ padding: "8px 20px", borderRadius: "8px", border: "none", background: "#dc2626", color: "#fff", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer" }}>
+              End Session
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="slide-controls">
       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
         <img src="/codekiwilogo.png" alt="CodeKiwi" style={{ height: "28px", width: "28px", objectFit: "contain", flexShrink: 0, marginRight: "4px" }} />
@@ -87,11 +114,21 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
           </svg>
           {studentCount} {studentCount === 1 ? "student" : "students"}
         </div>
+
+        {slideInfo && (
+          <div className="student-count">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            {slideInfo.current + 1} / {slideInfo.total}
+          </div>
+        )}
       </div>
 
-      <button className="nav-btn nav-btn--danger" onClick={handleEndSession}>
+      <button className="nav-btn nav-btn--danger" onClick={() => setShowConfirm(true)}>
         End Session
       </button>
     </div>
+    </>
   );
 }

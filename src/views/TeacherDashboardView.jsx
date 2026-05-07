@@ -36,6 +36,7 @@ function timeAgo(ts) {
 }
 
 const STATUS_LABEL = { empty: "No code", coding: "Coding", ran: "Ran code", error: "Error" };
+const STATUS_ORDER = { error: 0, empty: 1, coding: 2, ran: 3 };
 
 export default function TeacherDashboardView() {
   const { sessionCode } = useParams();
@@ -47,6 +48,8 @@ export default function TeacherDashboardView() {
   const [language, setLanguage] = useState("python");
   const [, setTick] = useState(0);
   const lastSeenCodeRef = useRef({});
+  const [filter, setFilter] = useState("all"); // all | error | empty | coding | ran
+  const [sort, setSort] = useState("status");  // status | updated | name
 
   const { editorsLocked, setEditorsLocked, toggleLock } = useLockEditor(sessionCode);
 
@@ -109,6 +112,41 @@ export default function TeacherDashboardView() {
         <div className="tdb-main">
           <div className="tdb-header-row">
             <h2 className="tdb-title">Student Code Dashboard</h2>
+            {students.length > 0 && (
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                {/* Filter tabs */}
+                <div style={{ display: "flex", gap: "4px", background: "#e8f4d4", borderRadius: "8px", padding: "3px" }}>
+                  {[["all", "All"], ["error", "Errors"], ["empty", "No Code"], ["coding", "Coding"], ["ran", "Ran"]].map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => setFilter(val)}
+                      style={{
+                        padding: "3px 10px", borderRadius: "6px", border: "none", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                        background: filter === val ? (val === "error" ? "#dc2626" : "#6b8f2b") : "transparent",
+                        color: filter === val ? "#fff" : "#6b8f2b",
+                      }}
+                    >
+                      {label}
+                      {val !== "all" && (
+                        <span style={{ marginLeft: "4px", opacity: 0.8 }}>
+                          ({students.filter(s => getStatus(s) === val).length})
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {/* Sort select */}
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  style={{ padding: "4px 8px", borderRadius: "7px", border: "1.5px solid #a8d05f", background: "#fff", fontSize: "0.75rem", color: "#6b8f2b", fontWeight: 600, cursor: "pointer" }}
+                >
+                  <option value="status">Sort: Needs help first</option>
+                  <option value="updated">Sort: Last updated</option>
+                  <option value="name">Sort: Name</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {students.length === 0 ? (
@@ -123,7 +161,14 @@ export default function TeacherDashboardView() {
             </div>
           ) : (
             <div className="tdb-grid">
-              {students.map((student) => {
+              {[...students]
+                .filter(s => filter === "all" || getStatus(s) === filter)
+                .sort((a, b) => {
+                  if (sort === "status") return STATUS_ORDER[getStatus(a)] - STATUS_ORDER[getStatus(b)];
+                  if (sort === "updated") return (lastUpdated[b.id] || 0) - (lastUpdated[a.id] || 0);
+                  return a.name.localeCompare(b.name);
+                })
+                .map((student) => {
                 const status = getStatus(student);
                 const ts = timeAgo(lastUpdated[student.id]);
                 return (
@@ -169,6 +214,11 @@ export default function TeacherDashboardView() {
                   </div>
                 );
               })}
+            </div>
+          )}
+          {students.length > 0 && filter !== "all" && students.filter(s => getStatus(s) === filter).length === 0 && (
+            <div className="tdb-empty" style={{ paddingTop: "40px" }}>
+              <p style={{ color: "#6b8f2b", opacity: 0.6, fontSize: "0.9rem" }}>No students match this filter.</p>
             </div>
           )}
         </div>
