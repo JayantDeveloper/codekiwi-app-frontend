@@ -190,27 +190,31 @@ export default function TeacherView() {
           sessionCode={sessionCode}
           editorsLocked={editorsLocked}
           onToggleLock={toggleLock}
-          slideInfo={slides.length > 0 ? { current: currentIndex, total: slides.length } : null}
           leftButtons={[
             <button
               key="prev"
-              className="nav-btn nav-btn--ghost"
+              className="nav-btn nav-btn--ghost nav-btn--icon"
               onClick={() => changeSlide(currentIndex - 1)}
               disabled={currentIndex === 0}
+              aria-label="Previous slide"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
-              Previous
             </button>,
+            slides.length > 0 && (
+              <div key="counter" className="student-count slide-counter-inline">
+                {currentIndex + 1} <span className="slide-counter-inline-sep">/</span> {slides.length}
+              </div>
+            ),
             <button
               key="next"
-              className="nav-btn nav-btn--ghost"
+              className="nav-btn nav-btn--ghost nav-btn--icon"
               onClick={() => changeSlide(currentIndex + 1)}
               disabled={currentIndex === slides.length - 1}
+              aria-label="Next slide"
             >
-              Next
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
             </button>,
