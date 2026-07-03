@@ -105,7 +105,7 @@ export default function TeacherView() {
             </button>
 
             {/* Two-column layout: code info + QR */}
-            <div style={{ display: "flex", gap: "20px", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div style={{ display: "flex", gap: "20px", alignItems: "center", marginBottom: "16px" }}>
               <div style={{ flex: 1 }}>
                 <div className="lobby-url-box">codekiwi.app</div>
                 <div className="lobby-code-box" style={{ marginBottom: 0 }}>
