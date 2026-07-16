@@ -25,6 +25,19 @@ export default function StudentView() {
   const [editorContent, setEditorContent] = useState("");
   const [output, setOutput] = useState("");
   const [editorLocked, setEditorLocked] = useState(false);
+  const [teacherEditing, setTeacherEditing] = useState(false);
+
+  // Student work keyed by slide index, backed by localStorage so a page
+  // refresh mid-session doesn't lose it. Mutated in place; the editor's
+  // `editorContent` state is what drives re-renders.
+  const storageKey = `codekiwi-code-${sessionCode}-${studentId}`;
+  const [codeBySlide] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey)) || {};
+    } catch {
+      return {};
+    }
+  });
   const [codingSlides, setCodingSlides] = useState([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [pendingSlideIndex, setPendingSlideIndex] = useState(null);
@@ -90,7 +103,11 @@ export default function StudentView() {
       const data = JSON.parse(event.data);
       if (data.type === "lock-editors" && data.sessionCode === sessionCode) setEditorLocked(!!data.locked);
       if (data.type === "sync") setPendingSlideIndex(data.slide);
-      if (data.type === "code-override") setEditorContent(data.code);
+      if (data.type === "teacher-editing") setTeacherEditing(!!data.editing);
+      if (data.type === "code-override") {
+        setEditorContent(data.code);
+        setTeacherEditing(false);
+      }
       if (data.type === "session-ended" && data.sessionCode === sessionCode) {
         setSessionEnded(true);
         try { ws.close(); } catch {}
@@ -100,13 +117,35 @@ export default function StudentView() {
     return () => { try { ws.close(); } catch {} };
   }, [sessionCode, sessionEnded, studentId]);
 
+  // Keep each coding slide's work saved as the student types (or when the
+  // teacher overrides), so navigating away and back restores it. Saving is
+  // held off until the first restore below has run, so the empty initial
+  // buffer never overwrites work saved from a previous page load.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (!restoredRef.current || !codingSlides.includes(currentSlideIndex)) return;
+    codeBySlide[currentSlideIndex] = editorContent;
+    try { localStorage.setItem(storageKey, JSON.stringify(codeBySlide)); } catch {}
+  }, [editorContent, currentSlideIndex, codingSlides, codeBySlide, storageKey]);
+
   useEffect(() => {
     if (sessionEnded || pendingSlideIndex === null || codingSlides.length === 0) return;
+    restoredRef.current = true;
     setCurrentSlideIndex(pendingSlideIndex);
-    setEditorContent(codingSlides.includes(pendingSlideIndex) ? (STARTER_CODE[language] || STARTER_CODE.python) : "");
+    if (codingSlides.includes(pendingSlideIndex)) {
+      const saved = codeBySlide[pendingSlideIndex];
+      setEditorContent(saved ? saved : (STARTER_CODE[language] || STARTER_CODE.python));
+    } else {
+      setEditorContent("");
+    }
     setOutput("");
     if (terminal) terminal.reset();
-  }, [pendingSlideIndex, codingSlides, sessionEnded, language, terminal]);
+  }, [pendingSlideIndex, codingSlides, sessionEnded, language, terminal, codeBySlide]);
+
+  useEffect(() => {
+    if (!sessionEnded) return;
+    try { localStorage.removeItem(storageKey); } catch {}
+  }, [sessionEnded, storageKey]);
 
   useEffect(() => {
     if (sessionEnded) return;
@@ -153,6 +192,12 @@ export default function StudentView() {
           <div className="editor-section">
             <div className="editor-header">
               <span className="editor-filename">{filename}</span>
+              {teacherEditing && (
+                <span className="teacher-editing-badge">
+                  <span className="teacher-editing-dot" />
+                  Teacher is editing…
+                </span>
+              )}
               <div className="editor-header-right">
                 <span className="lang-badge">{langLabel}</span>
                 <RunButton code={editorContent} onOutput={setOutput} language={language} />

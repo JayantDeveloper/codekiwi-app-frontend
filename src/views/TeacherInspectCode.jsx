@@ -79,6 +79,21 @@ export default function TeacherInspectCode() {
     if (termInstance.current) termInstance.current.reset();
   }, [studentId]);
 
+  // Tell the student's editor when the teacher is editing their code.
+  // Cleanup covers Save, Cancel, switching students, and leaving the page.
+  useEffect(() => {
+    if (!editing) return;
+    const notify = (isEditing) =>
+      fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students/${studentId}/editing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ editing: isEditing }),
+        keepalive: true,
+      }).catch(() => {});
+    notify(true);
+    return () => notify(false);
+  }, [editing, sessionCode, studentId]);
+
   const saveEdit = async () => {
     await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students/${studentId}/override`, {
       method: "POST",

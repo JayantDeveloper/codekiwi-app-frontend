@@ -195,3 +195,36 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* ── Teacher editing indicator ── */
+.teacher-editing-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(168, 208, 95, 0.12);
+  border: 1px solid rgba(168, 208, 95, 0.45);
+  color: #c8e89a;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
+  font-family: 'Fira Code', 'Monaco', monospace;
+  white-space: nowrap;
+  margin-right: auto;
+  margin-left: 4px;
+}
+
+.teacher-editing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a8d05f;
+  flex-shrink: 0;
+  animation: teacher-editing-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes teacher-editing-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
