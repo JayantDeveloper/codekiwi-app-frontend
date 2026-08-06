@@ -19,25 +19,43 @@
 }
 
 .session-id--clickable {
-  color: #1a1a1a;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #3d5a13;
   font-weight: 700;
-  font-size: 16px;
-  letter-spacing: 0.06em;
+  font-size: 15px;
+  letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  background: transparent;
-  border: none;
-  padding: 4px 10px;
-  border-radius: 6px;
-  transition: background 0.15s;
+  background: #f0f7e6;
+  border: 1.5px solid #b5d97f;
+  padding: 7px 16px;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(61, 90, 19, 0.12);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
   font-family: inherit;
   flex: 0 0 auto;
   margin: 12px auto;
-  display: block;
   width: fit-content;
 }
+.session-id--clickable svg {
+  color: #6b8f2b;
+  flex-shrink: 0;
+}
 .session-id--clickable:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: #e4f0d0;
+  border-color: #8ab336;
+  box-shadow: 0 2px 8px rgba(61, 90, 19, 0.18);
+  transform: translateY(-1px);
+}
+.session-id--clickable:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(61, 90, 19, 0.12);
+}
+.session-id--clickable:focus-visible {
+  outline: 2px solid #8ab336;
+  outline-offset: 2px;
 }
 
 /* The frame should fill remaining space and width of its parent */

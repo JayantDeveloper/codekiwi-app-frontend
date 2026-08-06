@@ -21,7 +21,17 @@ function Slides({ isTeacher, slides = [], currentIndex = 0, sessionCode, loading
   return (
     <div className="slides-container">
       {onSessionIdClick ? (
-        <button className="session-id session-id--clickable" onClick={onSessionIdClick}>
+        <button
+          className="session-id session-id--clickable"
+          onClick={onSessionIdClick}
+          title="Show join info, QR code & connected students"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="16" y="16" width="5" height="5" rx="1" />
+          </svg>
           Session: {sessionCode}
         </button>
       ) : (

@@ -77,7 +77,9 @@ export default function TeacherView() {
     });
   };
 
-  const handleStart = () => {
+  // Dismissing the lobby (via Start Class or the ✕) marks the class as begun,
+  // so any later reopen shows "Continue Class" instead of "Start Class".
+  const closeLobby = () => {
     setHasStarted(true);
     setShowModal(false);
   };
@@ -97,7 +99,7 @@ export default function TeacherView() {
       {showModal && (
         <div className="lobby-overlay">
           <div className="lobby-card">
-            <button className="lobby-close-btn" onClick={() => setShowModal(false)} title="Close">
+            <button className="lobby-close-btn" onClick={closeLobby} title="Close">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -158,8 +160,8 @@ export default function TeacherView() {
               </button>
             </div>
 
-            <button className="lobby-start-btn" onClick={handleStart}>
-              {hasStarted ? "Continue" : "Start Class"}
+            <button className="lobby-start-btn" onClick={closeLobby}>
+              {hasStarted ? "Continue Class" : "Start Class"}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline", verticalAlign: "middle", marginLeft: "6px" }}>
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
