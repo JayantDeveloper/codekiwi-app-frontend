@@ -200,7 +200,7 @@ export default function StudentView() {
               )}
               <div className="editor-header-right">
                 <span className="lang-badge">{langLabel}</span>
-                <RunButton code={editorContent} onOutput={setOutput} language={language} />
+                <RunButton code={editorContent} onOutput={setOutput} language={language} sessionCode={sessionCode} studentId={studentId} />
               </div>
             </div>
             <EditorPane

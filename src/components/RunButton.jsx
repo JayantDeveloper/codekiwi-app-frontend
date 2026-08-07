@@ -3,7 +3,7 @@ import { TerminalContext } from "../context";
 import "./RunButton.css";
 import { BACKEND_BASE_URL } from "../config";
 
-export default function RunButton({ code, onOutput, language = "python" }) {
+export default function RunButton({ code, onOutput, language = "python", sessionCode, studentId }) {
   const { terminal } = useContext(TerminalContext);
 
   const safeScroll = useCallback(() => {
@@ -42,7 +42,7 @@ export default function RunButton({ code, onOutput, language = "python" }) {
       const res = await fetch(`${BACKEND_BASE_URL}/api/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, language }),
+        body: JSON.stringify({ code, language, sessionCode, studentId }),
       });
 
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
