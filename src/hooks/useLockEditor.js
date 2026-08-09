@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { BACKEND_BASE_URL } from "../config";
+import { teacherHeaders } from "../teacherAuth";
 
 /**
  * Manages editor lock state for a session. Fetches the initial state and
@@ -34,7 +35,7 @@ export function useLockEditor(sessionCode) {
         `${BACKEND_BASE_URL}/api/sessions/${sessionCode}/lock`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...teacherHeaders(sessionCode) },
           body: JSON.stringify({ locked: newLocked }),
         }
       );

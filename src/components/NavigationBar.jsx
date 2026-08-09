@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../views/TeacherView.css";
 import { BACKEND_BASE_URL } from "../config";
+import { teacherHeaders } from "../teacherAuth";
 
 export default function NavigationBar({ leftButtons, sessionCode, editorsLocked, onToggleLock }) {
   const [studentCount, setStudentCount] = useState(0);
@@ -9,7 +10,9 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
   useEffect(() => {
     const fetchStudentCount = async () => {
       try {
-        const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`);
+        const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`, {
+          headers: teacherHeaders(sessionCode),
+        });
         const data = await res.json();
         setStudentCount(data.students?.length || 0);
       } catch (err) {
@@ -26,7 +29,7 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
     try {
       const resp = await fetch(
         `${BACKEND_BASE_URL}/api/sessions/${sessionCode}/end`,
-        { method: "POST", headers: { "Content-Type": "application/json" } }
+        { method: "POST", headers: { "Content-Type": "application/json", ...teacherHeaders(sessionCode) } }
       );
       if (!resp.ok) throw new Error("Failed to end session");
 

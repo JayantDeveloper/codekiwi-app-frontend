@@ -8,6 +8,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
+import { captureTeacherToken, teacherHeaders } from "../teacherAuth";
 
 const JOIN_BASE = "https://www.codekiwi.app/student";
 
@@ -39,6 +40,12 @@ export default function TeacherView() {
     }
   });
 
+  // Persist the teacher token from the ?t= param the add-on opened us with,
+  // before any teacher-only request fires. Must run before the student poll.
+  useEffect(() => {
+    captureTeacherToken(sessionCode);
+  }, [sessionCode]);
+
   useEffect(() => {
     if (!sessionCode) return;
     fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/index.json`)
@@ -56,7 +63,9 @@ export default function TeacherView() {
     if (!sessionCode) return;
     const poll = async () => {
       try {
-        const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`);
+        const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`, {
+          headers: teacherHeaders(sessionCode),
+        });
         const data = await res.json();
         const students = data.students || [];
         setStudentCount(students.length);

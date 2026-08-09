@@ -10,6 +10,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
+import { captureTeacherToken, teacherHeaders } from "../teacherAuth";
 
 SyntaxHighlighter.registerLanguage("python", python);
 SyntaxHighlighter.registerLanguage("javascript", javascript);
@@ -80,9 +81,12 @@ export default function TeacherDashboardView() {
 
   useEffect(() => {
     if (!sessionCode) return;
+    captureTeacherToken(sessionCode);
     const fetchStudents = async () => {
       try {
-        const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`);
+        const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`, {
+          headers: teacherHeaders(sessionCode),
+        });
         const data = await res.json();
         const incoming = data.students || [];
 

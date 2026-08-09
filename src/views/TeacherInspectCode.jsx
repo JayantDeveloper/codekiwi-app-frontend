@@ -10,6 +10,7 @@ import NotesSidebar from "../components/NotesSidebar";
 import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
+import { teacherHeaders } from "../teacherAuth";
 
 function getOutputStatus(output) {
   if (!output || output.trim() === "" || output === "No terminal output yet.") return null;
@@ -59,7 +60,9 @@ export default function TeacherInspectCode() {
     if (!sessionCode) return;
     const poll = async () => {
       try {
-        const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`);
+        const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`, {
+          headers: teacherHeaders(sessionCode),
+        });
         const data = await res.json();
         setStudents(data.students || []);
       } catch { /* silent */ }
@@ -86,7 +89,7 @@ export default function TeacherInspectCode() {
     const notify = (isEditing) =>
       fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students/${studentId}/editing`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...teacherHeaders(sessionCode) },
         body: JSON.stringify({ editing: isEditing }),
         keepalive: true,
       }).catch(() => {});
@@ -97,7 +100,7 @@ export default function TeacherInspectCode() {
   const saveEdit = async () => {
     await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students/${studentId}/override`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...teacherHeaders(sessionCode) },
       body: JSON.stringify({ code: editCode }),
     });
     setCode(editCode);
@@ -136,7 +139,8 @@ export default function TeacherInspectCode() {
     const fetchData = async () => {
       try {
         const res = await fetch(
-          `${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students/${studentId}`
+          `${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students/${studentId}`,
+          { headers: teacherHeaders(sessionCode) }
         );
         const data = await res.json();
         setCode(data.code || "");
