@@ -26,6 +26,7 @@ export default function StudentView() {
   const [output, setOutput] = useState("");
   const [editorLocked, setEditorLocked] = useState(false);
   const [teacherEditing, setTeacherEditing] = useState(false);
+  const [handRaised, setHandRaised] = useState(false);
 
   // Student work keyed by slide index, backed by localStorage so a page
   // refresh mid-session doesn't lose it. Mutated in place; the editor's
@@ -153,11 +154,22 @@ export default function StudentView() {
       fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, name: studentName, code: editorContent || "", output: output || "" }),
+        body: JSON.stringify({ studentId, name: studentName, code: editorContent || "", output: output || "", handRaised }),
       }).catch((err) => console.error("Failed to post code:", err));
     }, 3000);
     return () => clearInterval(interval);
-  }, [sessionCode, studentId, studentName, editorContent, output, sessionEnded]);
+  }, [sessionCode, studentId, studentName, editorContent, output, handRaised, sessionEnded]);
+
+  // Raise/lower the "I'm stuck" flag and push it immediately so the teacher
+  // dashboard reflects it without waiting for the next 3s heartbeat.
+  const setHand = (next) => {
+    setHandRaised(next);
+    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentId, name: studentName, code: editorContent || "", output: output || "", handRaised: next }),
+    }).catch(() => {});
+  };
 
   const isCodeSlide = codingSlides.length > 0 && codingSlides.includes(currentSlideIndex);
   const filename = language === "javascript" ? "main.js" : "main.py";
@@ -199,8 +211,30 @@ export default function StudentView() {
                 </span>
               )}
               <div className="editor-header-right">
+                <button
+                  type="button"
+                  className={`stuck-button ${handRaised ? "stuck-button--active" : ""}`}
+                  onClick={() => setHand(!handRaised)}
+                  title={handRaised ? "You raised your hand. Click to lower it." : "Let your teacher know you're stuck"}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0-2 2v0a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6" />
+                    <path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2" />
+                    <path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8" />
+                    <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+                  </svg>
+                  {handRaised ? "Hand raised" : "I'm stuck"}
+                </button>
                 <span className="lang-badge">{langLabel}</span>
-                <RunButton code={editorContent} onOutput={setOutput} language={language} sessionCode={sessionCode} studentId={studentId} />
+                <RunButton
+                  code={editorContent}
+                  onOutput={setOutput}
+                  onGrade={(grade) => { if (grade.graded && grade.passed) setHand(false); }}
+                  language={language}
+                  sessionCode={sessionCode}
+                  studentId={studentId}
+                  slideIndex={currentSlideIndex}
+                />
               </div>
             </div>
             <EditorPane

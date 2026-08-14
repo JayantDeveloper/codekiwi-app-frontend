@@ -87,7 +87,19 @@
 .student-card--empty  { border-left: 3px solid #4b5563; }
 .student-card--coding { border-left: 3px solid #6b8f2b; }
 .student-card--ran    { border-left: 3px solid #3b82f6; }
-.student-card--error  { border-left: 3px solid #f59e0b; }
+.student-card--error  { border-left: 3px solid #d97706; }
+.student-card--done   { border-left: 3px solid #16a34a; }
+.student-card--help   { border-left: 3px solid #dc2626; }
+
+/* A hand-raised / stuck student should pull the eye across the whole grid. */
+.student-card--help {
+  box-shadow: 0 0 0 2px #dc2626, 0 6px 22px rgba(220, 38, 38, 0.35);
+  animation: card-help-pulse 1.6s ease-in-out infinite;
+}
+@keyframes card-help-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #dc2626, 0 6px 22px rgba(220, 38, 38, 0.28); }
+  50%      { box-shadow: 0 0 0 2px #dc2626, 0 6px 26px rgba(220, 38, 38, 0.55); }
+}
 
 /* ── Card header ─────────────────────────────────────────────── */
 
@@ -135,7 +147,9 @@
 .status-dot--empty  { background: #4b5563; }
 .status-dot--coding { background: #6b8f2b; box-shadow: 0 0 5px #6b8f2b80; }
 .status-dot--ran    { background: #3b82f6; box-shadow: 0 0 5px #3b82f660; }
-.status-dot--error  { background: #f59e0b; box-shadow: 0 0 5px #f59e0b60; }
+.status-dot--error  { background: #d97706; box-shadow: 0 0 5px #d9770660; }
+.status-dot--done   { background: #16a34a; box-shadow: 0 0 5px #16a34a70; }
+.status-dot--help   { background: #dc2626; box-shadow: 0 0 6px #dc262690; }
 .status-dot--white  { background: rgba(255,255,255,0.85); }
 
 /* ── Status pill ─────────────────────────────────────────────── */
@@ -154,12 +168,37 @@
 .status-pill--coding { background: #d5f1d5; color: #1a2b08; border: 1px solid #6b8f2b; }
 .status-pill--ran    { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
 .status-pill--error  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.status-pill--done   { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.status-pill--help   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 
 /* Pills on colored student cards — each status has its own solid color */
 .status-pill--on-empty  { background: #4b5563; color: white; border: none; }
 .status-pill--on-coding { background: #2563eb; color: white; border: none; }
 .status-pill--on-ran    { background: #16a34a; color: white; border: none; }
-.status-pill--on-error  { background: #dc2626; color: white; border: none; }
+.status-pill--on-error  { background: #d97706; color: white; border: none; }
+.status-pill--on-done   { background: #16a34a; color: white; border: none; }
+.status-pill--on-help   { background: #dc2626; color: white; border: none; }
+
+/* ── Status group + score badge ──────────────────────────────── */
+
+.card-status-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.card-score {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+  background: #eef6dd;
+  color: #3f5713;
+  border: 1px solid #cfe5a3;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── Code preview block ──────────────────────────────────────── */
 

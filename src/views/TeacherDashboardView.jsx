@@ -11,22 +11,17 @@ import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
 import { captureTeacherToken, teacherHeaders } from "../teacherAuth";
+import {
+  getStatus,
+  STATUS_LABEL,
+  STATUS_ORDER,
+  STATUS_FILTERS,
+  passedCount,
+  countCodingSlides,
+} from "../studentStatus";
 
 SyntaxHighlighter.registerLanguage("python", python);
 SyntaxHighlighter.registerLanguage("javascript", javascript);
-
-function getStatus(student) {
-  const hasCode = student.code && student.code.trim().length > 0;
-  const rawOutput = student.output || "";
-  const hasOutput = rawOutput.trim().length > 0 && rawOutput !== "No terminal output yet.";
-  if (!hasCode) return "empty";
-  if (hasOutput) {
-    const lower = rawOutput.toLowerCase();
-    if (lower.includes("error") || lower.includes("traceback") || lower.includes("exception")) return "error";
-    return "ran";
-  }
-  return "coding";
-}
 
 function timeAgo(ts) {
   if (!ts) return null;
@@ -35,9 +30,6 @@ function timeAgo(ts) {
   if (diff < 60) return `${diff}s ago`;
   return `${Math.floor(diff / 60)}m ago`;
 }
-
-const STATUS_LABEL = { empty: "No code", coding: "Coding", ran: "Ran code", error: "Error" };
-const STATUS_ORDER = { error: 0, empty: 1, coding: 2, ran: 3 };
 
 export default function TeacherDashboardView() {
   const { sessionCode } = useParams();
@@ -110,6 +102,8 @@ export default function TeacherDashboardView() {
     return () => clearInterval(interval);
   }, [sessionCode]);
 
+  const totalCoding = countCodingSlides(notes);
+
   return (
     <div className="tdb-container">
       <div className="tdb-body">
@@ -120,24 +114,27 @@ export default function TeacherDashboardView() {
               <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
                 {/* Filter tabs */}
                 <div style={{ display: "flex", gap: "4px", background: "#e8f4d4", borderRadius: "8px", padding: "3px" }}>
-                  {[["all", "All"], ["error", "Errors"], ["empty", "No Code"], ["coding", "Coding"], ["ran", "Ran"]].map(([val, label]) => (
-                    <button
-                      key={val}
-                      onClick={() => setFilter(val)}
-                      style={{
-                        padding: "3px 10px", borderRadius: "6px", border: "none", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
-                        background: filter === val ? (val === "error" ? "#dc2626" : "#6b8f2b") : "transparent",
-                        color: filter === val ? "#fff" : "#6b8f2b",
-                      }}
-                    >
-                      {label}
-                      {val !== "all" && (
-                        <span style={{ marginLeft: "4px", opacity: 0.8 }}>
-                          ({students.filter(s => getStatus(s) === val).length})
-                        </span>
-                      )}
-                    </button>
-                  ))}
+                  {STATUS_FILTERS.map(([val, label]) => {
+                    const activeBg = val === "help" ? "#dc2626" : val === "error" ? "#d97706" : val === "done" ? "#16a34a" : "#6b8f2b";
+                    return (
+                      <button
+                        key={val}
+                        onClick={() => setFilter(val)}
+                        style={{
+                          padding: "3px 10px", borderRadius: "6px", border: "none", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                          background: filter === val ? activeBg : "transparent",
+                          color: filter === val ? "#fff" : "#6b8f2b",
+                        }}
+                      >
+                        {label}
+                        {val !== "all" && (
+                          <span style={{ marginLeft: "4px", opacity: 0.8 }}>
+                            ({students.filter(s => getStatus(s) === val).length})
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
                 {/* Sort select */}
                 <select
@@ -175,6 +172,7 @@ export default function TeacherDashboardView() {
                 .map((student) => {
                 const status = getStatus(student);
                 const ts = timeAgo(lastUpdated[student.id]);
+                const solved = passedCount(student);
                 return (
                   <div
                     key={student.id}
@@ -192,9 +190,20 @@ export default function TeacherDashboardView() {
                           {ts}
                         </span>}
                       </div>
-                      <span className={`status-pill status-pill--on-${status}`}>
-                        {STATUS_LABEL[status]}
-                      </span>
+                      <div className="card-status-group">
+                        {totalCoding > 0 && (
+                          <span
+                            className="card-score"
+                            style={student.color ? { background: "rgba(0,0,0,0.22)", color: "#fff", borderColor: "transparent" } : {}}
+                            title="Coding questions answered correctly"
+                          >
+                            {solved}/{totalCoding}
+                          </span>
+                        )}
+                        <span className={`status-pill status-pill--on-${status}`}>
+                          {STATUS_LABEL[status]}
+                        </span>
+                      </div>
                     </div>
                     <div className="card-code-block">
                       <SyntaxHighlighter

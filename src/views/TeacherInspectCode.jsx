@@ -11,6 +11,7 @@ import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
 import { teacherHeaders } from "../teacherAuth";
+import { parseCodingNote } from "../studentStatus";
 
 function getOutputStatus(output) {
   if (!output || output.trim() === "" || output === "No terminal output yet.") return null;
@@ -30,6 +31,8 @@ export default function TeacherInspectCode() {
   const [students, setStudents] = useState([]);
   const [editing, setEditing] = useState(false);
   const [editCode, setEditCode] = useState("");
+  const [handRaised, setHandRaised] = useState(false);
+  const [grades, setGrades] = useState({});
   const terminalRef = useRef(null);
   const termInstance = useRef(null);
   const lastOutputRef = useRef("");
@@ -78,6 +81,8 @@ export default function TeacherInspectCode() {
     setOutput("");
     setEditing(false);
     setEditCode("");
+    setHandRaised(false);
+    setGrades({});
     lastOutputRef.current = "";
     if (termInstance.current) termInstance.current.reset();
   }, [studentId]);
@@ -144,6 +149,8 @@ export default function TeacherInspectCode() {
         );
         const data = await res.json();
         setCode(data.code || "");
+        setHandRaised(!!data.handRaised);
+        setGrades(data.grades || {});
         const newOutput = data.output || "";
         setOutput(newOutput);
 
@@ -179,7 +186,9 @@ export default function TeacherInspectCode() {
   const currentNote = notes[currentIndex];
   const filename = language === "javascript" ? "main.js" : "main.py";
   const langLabel = language === "javascript" ? "JavaScript" : "Python";
-  const isCodingSlide = currentNote && currentNote.trimStart().toLowerCase().startsWith("code question");
+  const parsedNote = parseCodingNote(currentNote);
+  const isCodingSlide = parsedNote.isCoding;
+  const slideGrade = grades[currentIndex]; // { passed, ranAt } | undefined
 
   return (
     <div className="teacher-container">
@@ -225,20 +234,61 @@ export default function TeacherInspectCode() {
             </span>
           </div>
 
-          {outputStatus && (
-            <span className={`inspect-status-badge inspect-status-badge--${outputStatus}`}>
-              {outputStatus === "success" ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {handRaised && (
+              <span
+                className="inspect-status-badge"
+                style={{ background: "#dc2626", color: "#fff", border: "none" }}
+                title="This student raised their hand"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0-2 2v0a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6" />
+                  <path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2" />
+                  <path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8" />
+                  <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
                 </svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-              )}
-              {outputStatus === "success" ? "Ran successfully" : "Error in output"}
-            </span>
-          )}
+                Needs help
+              </span>
+            )}
+
+            {/* Autograde verdict for the current question takes precedence over
+                the raw output sniff; fall back to the sniff when this slide
+                isn't autogradable or hasn't been run yet. */}
+            {slideGrade ? (
+              <span
+                className="inspect-status-badge"
+                style={slideGrade.passed
+                  ? { background: "#dcfce7", color: "#166534", border: "1px solid #86efac" }
+                  : { background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5" }}
+              >
+                {slideGrade.passed ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                )}
+                {slideGrade.passed ? "Correct answer" : "Incorrect answer"}
+              </span>
+            ) : (
+              outputStatus && (
+                <span className={`inspect-status-badge inspect-status-badge--${outputStatus}`}>
+                  {outputStatus === "success" ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                  )}
+                  {outputStatus === "success" ? "Ran successfully" : "Error in output"}
+                </span>
+              )
+            )}
+          </div>
         </div>
 
         {/* ── Question context strip ── */}
@@ -252,7 +302,21 @@ export default function TeacherInspectCode() {
               <polyline points="10 9 9 9 8 9" />
             </svg>
             <span className="inspect-question-label">Slide {currentIndex + 1}:</span>
-            <span className="inspect-question-text">{currentNote.replace(/^code question:\s*/i, "")}</span>
+            <span className="inspect-question-text">{parsedNote.prompt}</span>
+            {parsedNote.expected !== null && (
+              <span
+                title="Runs are auto-checked against this expected output"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "5px", marginLeft: "auto",
+                  flexShrink: 0, padding: "2px 8px", borderRadius: "6px",
+                  background: "#eef6dd", border: "1px solid #cfe5a3", color: "#3f5713",
+                  fontSize: "0.72rem", fontWeight: 700, fontFamily: "'Fira Code', 'Monaco', monospace",
+                  maxWidth: "40%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}
+              >
+                Expected: {parsedNote.expected.replace(/\n/g, "⏎")}
+              </span>
+            )}
           </div>
         )}
 
