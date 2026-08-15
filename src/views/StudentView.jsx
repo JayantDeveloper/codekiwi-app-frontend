@@ -154,11 +154,11 @@ export default function StudentView() {
       fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, name: studentName, code: editorContent || "", output: output || "", handRaised }),
+        body: JSON.stringify({ studentId, name: studentName, code: editorContent || "", output: output || "", handRaised, slideIndex: currentSlideIndex }),
       }).catch((err) => console.error("Failed to post code:", err));
     }, 3000);
     return () => clearInterval(interval);
-  }, [sessionCode, studentId, studentName, editorContent, output, handRaised, sessionEnded]);
+  }, [sessionCode, studentId, studentName, editorContent, output, handRaised, currentSlideIndex, sessionEnded]);
 
   // Raise/lower the "I'm stuck" flag and push it immediately so the teacher
   // dashboard reflects it without waiting for the next 3s heartbeat.
@@ -167,7 +167,7 @@ export default function StudentView() {
     fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/code`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentId, name: studentName, code: editorContent || "", output: output || "", handRaised: next }),
+      body: JSON.stringify({ studentId, name: studentName, code: editorContent || "", output: output || "", handRaised: next, slideIndex: currentSlideIndex }),
     }).catch(() => {});
   };
 
