@@ -10,6 +10,7 @@ import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
 import { captureTeacherToken, teacherHeaders } from "../teacherAuth";
+import { langMeta } from "../lang";
 
 const JOIN_BASE = "https://www.codekiwi.app/student";
 
@@ -41,6 +42,13 @@ export default function TeacherView() {
   const [demoOutput, setDemoOutput] = useState("");
   const [demoRunning, setDemoRunning] = useState(false);
   const demoTimerRef = useRef(null);
+  const demoEditedRef = useRef(false);
+
+  // Seed the demo editor with the session language's starter once meta.json
+  // loads, unless the teacher has already started editing it.
+  useEffect(() => {
+    if (!demoEditedRef.current) setDemoCode(langMeta(language).starter);
+  }, [language]);
 
   const { editorsLocked, setEditorsLocked, toggleLock } = useLockEditor(sessionCode);
   const wsRef = useSessionWebSocket(sessionCode, (data) => {
@@ -68,6 +76,7 @@ export default function TeacherView() {
 
   // Broadcast keystrokes to students, debounced so we don't flood the room.
   const onDemoCodeChange = (val) => {
+    demoEditedRef.current = true;
     setDemoCode(val);
     if (!demoOn) return;
     if (demoTimerRef.current) clearTimeout(demoTimerRef.current);
@@ -320,7 +329,7 @@ export default function TeacherView() {
           <div className="demo-dock">
             <div className="demo-dock-head">
               <span className="demo-dock-title">
-                <span className="demo-live-dot" /> Live Demo · {language === "javascript" ? "main.js" : "main.py"}
+                <span className="demo-live-dot" /> Live Demo · {langMeta(language).file}
               </span>
               <div className="demo-dock-actions">
                 <button className="demo-run-btn" onClick={runDemo} disabled={demoRunning}>

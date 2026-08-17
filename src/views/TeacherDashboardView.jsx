@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import python from "react-syntax-highlighter/dist/esm/languages/hljs/python";
 import javascript from "react-syntax-highlighter/dist/esm/languages/hljs/javascript";
+import java from "react-syntax-highlighter/dist/esm/languages/hljs/java";
 import { vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import "./TeacherDashboardView.css";
 import NavigationBar from "../components/NavigationBar";
@@ -22,6 +23,7 @@ import {
 
 SyntaxHighlighter.registerLanguage("python", python);
 SyntaxHighlighter.registerLanguage("javascript", javascript);
+SyntaxHighlighter.registerLanguage("java", java);
 
 function timeAgo(ts) {
   if (!ts) return null;

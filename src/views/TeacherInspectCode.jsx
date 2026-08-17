@@ -12,6 +12,7 @@ import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
 import { teacherHeaders } from "../teacherAuth";
 import { parseCodingNote } from "../studentStatus";
+import { langMeta } from "../lang";
 
 function getOutputStatus(output) {
   if (!output || output.trim() === "" || output === "No terminal output yet.") return null;
@@ -184,8 +185,8 @@ export default function TeacherInspectCode() {
 
   const outputStatus = getOutputStatus(output);
   const currentNote = notes[currentIndex];
-  const filename = language === "javascript" ? "main.js" : "main.py";
-  const langLabel = language === "javascript" ? "JavaScript" : "Python";
+  const filename = langMeta(language).file;
+  const langLabel = langMeta(language).label;
   const parsedNote = parseCodingNote(currentNote);
   const isCodingSlide = parsedNote.isCoding;
   const slideGrade = grades[currentIndex]; // { passed, ranAt } | undefined

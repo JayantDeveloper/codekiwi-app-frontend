@@ -7,11 +7,7 @@ import "./StudentView.css";
 import { useParams } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config";
 import { TerminalContext } from "../context";
-
-const STARTER_CODE = {
-  python: `# Write your code here\nprint("Hello, World!")\n`,
-  javascript: `// Write your code here\nconsole.log("Hello, World!");\n`,
-};
+import { langMeta } from "../lang";
 
 export default function StudentView() {
   const { sessionCode, studentId } = useParams();
@@ -149,7 +145,7 @@ export default function StudentView() {
     setCurrentSlideIndex(pendingSlideIndex);
     if (codingSlides.includes(pendingSlideIndex)) {
       const saved = codeBySlide[pendingSlideIndex];
-      setEditorContent(saved ? saved : (STARTER_CODE[language] || STARTER_CODE.python));
+      setEditorContent(saved ? saved : langMeta(language).starter);
     } else {
       setEditorContent("");
     }
@@ -187,8 +183,8 @@ export default function StudentView() {
 
   const isCodeSlide = codingSlides.length > 0 && codingSlides.includes(currentSlideIndex);
   const showRight = isCodeSlide || demoWatch;
-  const filename = language === "javascript" ? "main.js" : "main.py";
-  const langLabel = language === "javascript" ? "JavaScript" : "Python";
+  const filename = langMeta(language).file;
+  const langLabel = langMeta(language).label;
 
   if (sessionEnded) {
     return (
