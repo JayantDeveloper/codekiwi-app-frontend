@@ -390,3 +390,98 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+/* ── Live-demo dock ─────────────────────────────────────────────── */
+.nav-btn--demo-on {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+.nav-btn--demo-on:hover { background: #b91c1c; }
+
+.demo-dock {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  bottom: 64px;
+  width: 420px;
+  max-width: 42vw;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3c;
+  border-radius: 12px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 50;
+}
+.demo-dock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #6b8f2b, #8fb73a);
+  flex-shrink: 0;
+}
+.demo-dock-title {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Fira Code", "Monaco", monospace;
+}
+.demo-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow: 0 0 6px #ff5f57;
+  animation: demoPulse 1.4s ease-in-out infinite;
+}
+@keyframes demoPulse { 50% { opacity: 0.35; } }
+.demo-dock-actions { display: flex; gap: 6px; }
+.demo-run-btn {
+  background: #1e1e1e;
+  color: #a8d05f;
+  border: 1px solid #a8d05f;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 11px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.demo-run-btn:disabled { opacity: 0.6; cursor: default; }
+.demo-end-btn {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 11px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.demo-dock-editor { flex: 1; min-height: 0; }
+.demo-dock-term {
+  background: #111a08;
+  color: #a8d05f;
+  font-family: "Fira Code", "Monaco", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow: auto;
+  border-top: 1px solid #223;
+  flex-shrink: 0;
+}
+.demo-dock-foot {
+  font-size: 10px;
+  color: #8a8a8a;
+  padding: 5px 12px;
+  background: #252526;
+  text-align: center;
+  flex-shrink: 0;
+}

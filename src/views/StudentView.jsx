@@ -28,6 +28,12 @@ export default function StudentView() {
   const [teacherEditing, setTeacherEditing] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
 
+  // Live teacher-demo: when active, the student's editor + terminal mirror the
+  // teacher's, read-only. The student's own work (editorContent) is untouched.
+  const [demoWatch, setDemoWatch] = useState(false);
+  const [demoCode, setDemoCode] = useState("");
+  const [demoOutput, setDemoOutput] = useState("");
+
   // Student work keyed by slide index, backed by localStorage so a page
   // refresh mid-session doesn't lose it. Mutated in place; the editor's
   // `editorContent` state is what drives re-renders.
@@ -109,6 +115,14 @@ export default function StudentView() {
         setEditorContent(data.code);
         setTeacherEditing(false);
       }
+      if (data.type === "demo-start") {
+        setDemoCode(data.code || "");
+        setDemoOutput(data.output || "");
+        setDemoWatch(true);
+      }
+      if (data.type === "demo-code") setDemoCode(data.code || "");
+      if (data.type === "demo-run") setDemoOutput(data.output || "");
+      if (data.type === "demo-end") setDemoWatch(false);
       if (data.type === "session-ended" && data.sessionCode === sessionCode) {
         setSessionEnded(true);
         try { ws.close(); } catch {}
@@ -172,6 +186,7 @@ export default function StudentView() {
   };
 
   const isCodeSlide = codingSlides.length > 0 && codingSlides.includes(currentSlideIndex);
+  const showRight = isCodeSlide || demoWatch;
   const filename = language === "javascript" ? "main.js" : "main.py";
   const langLabel = language === "javascript" ? "JavaScript" : "Python";
 
@@ -187,8 +202,8 @@ export default function StudentView() {
 
   return (
     <div className="student-container">
-      <div className={`student-left ${!isCodeSlide ? "full-width" : ""}`}>
-        <div className={`slide-wrapper ${!isCodeSlide ? "shrink" : ""}`}>
+      <div className={`student-left ${!showRight ? "full-width" : ""}`}>
+        <div className={`slide-wrapper ${!showRight ? "shrink" : ""}`}>
           <Slides
             isTeacher={false}
             sessionCode={sessionCode}
@@ -199,8 +214,34 @@ export default function StudentView() {
           />
         </div>
       </div>
-      {isCodeSlide && (
+      {showRight && (
         <div className="student-right">
+          {demoWatch ? (
+            <>
+              <div className="editor-section">
+                <div className="editor-header">
+                  <span className="editor-filename">{filename}</span>
+                  <span className="demo-watch-badge">
+                    <span className="demo-watch-dot" />
+                    Watching teacher
+                  </span>
+                </div>
+                <EditorPane value={demoCode} readOnly language={language} />
+              </div>
+              <div className="terminal-section">
+                <div className="terminal-header">
+                  <svg className="terminal-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="4" />
+                    <polyline points="8 9 13 12 8 15" />
+                    <line x1="13" y1="15" x2="18" y2="15" />
+                  </svg>
+                  <span className="terminal-header-label">Output</span>
+                </div>
+                <pre className="demo-watch-term">{demoOutput || "▶ waiting for the teacher to run…"}</pre>
+              </div>
+            </>
+          ) : (
+          <>
           <div className="editor-section">
             <div className="editor-header">
               <span className="editor-filename">{filename}</span>
@@ -255,6 +296,8 @@ export default function StudentView() {
             </div>
             <TerminalPane onOutputChange={setOutput} />
           </div>
+          </>
+          )}
         </div>
       )}
     </div>

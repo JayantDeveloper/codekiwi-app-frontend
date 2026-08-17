@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import Slides from "../components/Slides";
+import EditorPane from "../components/EditorPane";
 import NavigationBar from "../components/NavigationBar";
 import NotesSidebar from "../components/NotesSidebar";
 import "./TeacherView.css";
@@ -32,6 +33,15 @@ export default function TeacherView() {
   const [linkCopied, setLinkCopied] = useState(false);
   const toastTimerRef = useRef(null);
 
+  const [language, setLanguage] = useState("python");
+  const [demoOn, setDemoOn] = useState(false);
+  const [demoCode, setDemoCode] = useState(
+    '# Live demo. Students see this in real time.\nprint("Hello, class!")\n'
+  );
+  const [demoOutput, setDemoOutput] = useState("");
+  const [demoRunning, setDemoRunning] = useState(false);
+  const demoTimerRef = useRef(null);
+
   const { editorsLocked, setEditorsLocked, toggleLock } = useLockEditor(sessionCode);
   const wsRef = useSessionWebSocket(sessionCode, (data) => {
     if (data.type === "sync") setCurrentIndex(data.slide);
@@ -39,6 +49,49 @@ export default function TeacherView() {
       setEditorsLocked(!!data.locked);
     }
   });
+
+  const wsSend = (payload) => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ ...payload, sessionCode }));
+    }
+  };
+
+  // Start/stop the live demo. On start we push the current code immediately so
+  // students see it the moment they enter watch-mode.
+  const toggleDemo = () => {
+    const next = !demoOn;
+    setDemoOn(next);
+    if (next) wsSend({ type: "demo-start", code: demoCode });
+    else wsSend({ type: "demo-end" });
+  };
+
+  // Broadcast keystrokes to students, debounced so we don't flood the room.
+  const onDemoCodeChange = (val) => {
+    setDemoCode(val);
+    if (!demoOn) return;
+    if (demoTimerRef.current) clearTimeout(demoTimerRef.current);
+    demoTimerRef.current = setTimeout(() => wsSend({ type: "demo-code", code: val }), 200);
+  };
+
+  const runDemo = async () => {
+    setDemoRunning(true);
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...teacherHeaders(sessionCode) },
+        body: JSON.stringify({ code: demoCode, language, sessionCode }),
+      });
+      const data = await res.json();
+      const out = (data.output || "No output.").trim();
+      setDemoOutput(out);
+      if (demoOn) wsSend({ type: "demo-run", output: out });
+    } catch (e) {
+      setDemoOutput("Error running demo: " + e.message);
+    } finally {
+      setDemoRunning(false);
+    }
+  };
 
   // Persist the teacher token from the ?t= param the add-on opened us with,
   // before any teacher-only request fires. Must run before the student poll.
@@ -57,6 +110,11 @@ export default function TeacherView() {
       .then((res) => res.json())
       .then(setNotes)
       .catch((err) => console.warn("No notes found:", err));
+
+    fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/meta.json`)
+      .then((res) => res.json())
+      .then((data) => { if (data.language) setLanguage(data.language); })
+      .catch(() => {});
   }, [sessionCode]);
 
   useEffect(() => {
@@ -230,6 +288,18 @@ export default function TeacherView() {
               </svg>
             </button>,
             <button
+              key="demo"
+              onClick={toggleDemo}
+              className={`nav-btn ${demoOn ? "nav-btn--demo-on" : "nav-btn--ghost"}`}
+              title="Live-code beside your slide. Students watch in real time."
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+              {demoOn ? "End Demo" : "Live Demo"}
+            </button>,
+            <button
               key="dashboard"
               onClick={() => navigate(`/teacher/dashboard/${sessionCode}`)}
               className="nav-btn nav-btn--primary"
@@ -244,6 +314,30 @@ export default function TeacherView() {
             </button>,
           ]}
         />
+
+        {/* ── Live-demo dock ── */}
+        {demoOn && (
+          <div className="demo-dock">
+            <div className="demo-dock-head">
+              <span className="demo-dock-title">
+                <span className="demo-live-dot" /> Live Demo · {language === "javascript" ? "main.js" : "main.py"}
+              </span>
+              <div className="demo-dock-actions">
+                <button className="demo-run-btn" onClick={runDemo} disabled={demoRunning}>
+                  {demoRunning ? "Running…" : "▶ Run"}
+                </button>
+                <button className="demo-end-btn" onClick={toggleDemo}>End</button>
+              </div>
+            </div>
+            <div className="demo-dock-editor">
+              <EditorPane value={demoCode} onCodeChange={onDemoCodeChange} language={language} />
+            </div>
+            <div className="demo-dock-term">
+              {demoOutput || "▶ Run to show output to the class"}
+            </div>
+            <div className="demo-dock-foot">Students see this live. Type or run and watch their screens follow.</div>
+          </div>
+        )}
       </div>
       <NotesSidebar currentIndex={currentIndex} notes={notes} />
 
