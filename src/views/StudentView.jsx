@@ -8,6 +8,7 @@ import { useParams } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config";
 import { TerminalContext } from "../context";
 import { langMeta } from "../lang";
+import { useSplitPane } from "../hooks/useSplitPane";
 
 export default function StudentView() {
   const { sessionCode, studentId } = useParams();
@@ -48,6 +49,10 @@ export default function StudentView() {
 
   const wsRef = useRef(null);
   const { terminal } = useContext(TerminalContext);
+
+  // Draggable slide/editor split. Editor opens at 40% of the row; the student
+  // can drag the divider anywhere between 20% and 70%.
+  const { editorPct, containerRef, startDrag } = useSplitPane(40, { min: 20, max: 70 });
 
   useEffect(() => {
     fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/index.json`)
@@ -197,8 +202,11 @@ export default function StudentView() {
   }
 
   return (
-    <div className="student-container">
-      <div className={`student-left ${!showRight ? "full-width" : ""}`}>
+    <div className="student-container" ref={containerRef}>
+      <div
+        className={`student-left ${!showRight ? "full-width" : ""}`}
+        style={showRight ? { flex: "1 1 0", maxWidth: "none" } : undefined}
+      >
         <div className={`slide-wrapper ${!showRight ? "shrink" : ""}`}>
           <Slides
             isTeacher={false}
@@ -211,10 +219,29 @@ export default function StudentView() {
         </div>
       </div>
       {showRight && (
-        <div className="student-right">
+        <div
+          className="split-resizer"
+          onMouseDown={startDrag}
+          role="separator"
+          aria-orientation="vertical"
+          title="Drag to resize"
+        />
+      )}
+      {showRight && (
+        <div
+          className="student-right"
+          style={{ flex: `0 0 calc(${editorPct}% - 8px)`, maxWidth: "none" }}
+        >
           {demoWatch ? (
             <>
-              <div className="editor-section">
+              <div className="watch-banner">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                Watching your teacher's live demo. Your own editor is paused.
+              </div>
+              <div className="editor-section editor-section--watching">
                 <div className="editor-header">
                   <span className="editor-filename">{filename}</span>
                   <span className="demo-watch-badge">
@@ -224,14 +251,14 @@ export default function StudentView() {
                 </div>
                 <EditorPane value={demoCode} readOnly language={language} />
               </div>
-              <div className="terminal-section">
+              <div className="terminal-section terminal-section--watching">
                 <div className="terminal-header">
                   <svg className="terminal-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="2" width="20" height="20" rx="4" />
                     <polyline points="8 9 13 12 8 15" />
                     <line x1="13" y1="15" x2="18" y2="15" />
                   </svg>
-                  <span className="terminal-header-label">Output</span>
+                  <span className="terminal-header-label">Teacher's Output</span>
                 </div>
                 <pre className="demo-watch-term">{demoOutput || "▶ waiting for the teacher to run…"}</pre>
               </div>

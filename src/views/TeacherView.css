@@ -12,15 +12,190 @@
     min-height: 0;
   }
 
+  /* Row that holds the slide and (when the demo editor is open) the editor
+     pane side by side. The nav bar stays full-width below it. */
+  .teacher-content {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+  }
+
   /* Center the slide and avoid hard clipping */
   .slide-box {
     flex: 1;
     border-radius: 8px;
-    overflow: visible;      
+    overflow: visible;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 0;
+    min-width: 0;
+  }
+
+  /* Draggable divider between the slide and the demo editor */
+  .split-resizer {
+    flex: 0 0 8px;
+    align-self: stretch;
+    cursor: col-resize;
+    background: #b7d38a;
+    position: relative;
+    border-radius: 3px;
+    transition: background 0.15s;
+  }
+  .split-resizer:hover,
+  .split-resizer:active {
+    background: #8fb73a;
+  }
+  .split-resizer::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 3px;
+    height: 34px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Horizontal divider (editor / terminal inside the demo pane).
+     Scoped under .tep-body so these win over the global .split-resizer base
+     rules that StudentView.css also defines. No center grip on this one. */
+  .tep-body .split-resizer--h {
+    cursor: row-resize;
+    background: #333;
+    border-radius: 0;
+  }
+  .tep-body .split-resizer--h:hover,
+  .tep-body .split-resizer--h:active {
+    background: #6b8f2b;
+  }
+  .tep-body .split-resizer--h::after {
+    display: none;
+  }
+
+  /* Live-demo editor pane — same clean look as the student's editor */
+  .teacher-editor-pane {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #2c2c2c;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  }
+  .tep-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    height: 38px;
+    background: #252526;
+    border-bottom: 1px solid #2c2c2c;
+    flex-shrink: 0;
+  }
+  .tep-file {
+    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+    font-size: 13px;
+    color: #cccccc;
+    flex-shrink: 0;
+  }
+  /* "Live to students" — static rounded badge, no blinking */
+  .tep-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #cbe89a;
+    background: rgba(168, 208, 95, 0.16);
+    border: 1px solid rgba(168, 208, 95, 0.4);
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .tep-live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #a8d05f;
+    flex-shrink: 0;
+  }
+  .tep-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .tep-run {
+    background: #6b8f2b;
+    color: #fff;
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .tep-run:hover { background: #567c1f; }
+  .tep-run:disabled { opacity: 0.6; cursor: default; }
+  .tep-close {
+    background: #3a3a3c;
+    color: #ddd;
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .tep-close:hover { background: #4a4a4c; }
+  /* Vertical split container: editor on top, terminal below */
+  .tep-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .tep-editor { flex: 1 1 0; min-height: 0; }
+
+  .tep-term-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .tep-term-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 26px;
+    padding: 0 12px;
+    background: #1a1a1a;
+    border-top: 1px solid #2c2c2c;
+    border-bottom: 1px solid #2c2c2c;
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7280;
+    font-family: 'Fira Code', 'Monaco', monospace;
+  }
+  .tep-term {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    background: #111a08;
+    color: #a8d05f;
+    font-family: 'Fira Code', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 8px 12px;
+    white-space: pre-wrap;
+    overflow: auto;
   }
 
   .slide-controls {
@@ -391,7 +566,7 @@
     transform: translateX(-50%) translateY(0);
   }
 
-/* ── Live-demo dock ─────────────────────────────────────────────── */
+/* ── Live-demo toggle (nav bar) ─────────────────────────────────── */
 .nav-btn--demo-on {
   background: #dc2626;
   color: #fff;
@@ -399,89 +574,4 @@
 }
 .nav-btn--demo-on:hover { background: #b91c1c; }
 
-.demo-dock {
-  position: fixed;
-  top: 64px;
-  right: 16px;
-  bottom: 64px;
-  width: 420px;
-  max-width: 42vw;
-  background: #1e1e1e;
-  border: 1px solid #3a3a3c;
-  border-radius: 12px;
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 50;
-}
-.demo-dock-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: linear-gradient(90deg, #6b8f2b, #8fb73a);
-  flex-shrink: 0;
-}
-.demo-dock-title {
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: "Fira Code", "Monaco", monospace;
-}
-.demo-live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ff5f57;
-  box-shadow: 0 0 6px #ff5f57;
-  animation: demoPulse 1.4s ease-in-out infinite;
-}
 @keyframes demoPulse { 50% { opacity: 0.35; } }
-.demo-dock-actions { display: flex; gap: 6px; }
-.demo-run-btn {
-  background: #1e1e1e;
-  color: #a8d05f;
-  border: 1px solid #a8d05f;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 11px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.demo-run-btn:disabled { opacity: 0.6; cursor: default; }
-.demo-end-btn {
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
-  border: none;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 11px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.demo-dock-editor { flex: 1; min-height: 0; }
-.demo-dock-term {
-  background: #111a08;
-  color: #a8d05f;
-  font-family: "Fira Code", "Monaco", monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  padding: 8px 12px;
-  white-space: pre-wrap;
-  max-height: 120px;
-  overflow: auto;
-  border-top: 1px solid #223;
-  flex-shrink: 0;
-}
-.demo-dock-foot {
-  font-size: 10px;
-  color: #8a8a8a;
-  padding: 5px 12px;
-  background: #252526;
-  text-align: center;
-  flex-shrink: 0;
-}

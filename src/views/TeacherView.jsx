@@ -11,6 +11,7 @@ import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
 import { captureTeacherToken, teacherHeaders } from "../teacherAuth";
 import { langMeta } from "../lang";
+import { useSplitPane } from "../hooks/useSplitPane";
 
 const JOIN_BASE = "https://www.codekiwi.app/student";
 
@@ -43,6 +44,20 @@ export default function TeacherView() {
   const [demoRunning, setDemoRunning] = useState(false);
   const demoTimerRef = useRef(null);
   const demoEditedRef = useRef(false);
+
+  // Draggable slide/editor split for the live demo. Editor opens at 35% of the
+  // slide row; the teacher can drag the divider between 20% and 70%.
+  const { editorPct, containerRef, startDrag } = useSplitPane(35, { min: 20, max: 70 });
+
+  // Draggable editor/terminal split inside the demo editor pane (vertical).
+  const {
+    editorPct: termPct,
+    containerRef: termContainerRef,
+    startDrag: startTermDrag,
+  } = useSplitPane(28, { min: 12, max: 70, axis: "y" });
+
+  // Speaker-notes sidebar starts collapsed so the slide has room to breathe.
+  const [notesCollapsed, setNotesCollapsed] = useState(true);
 
   // Seed the demo editor with the session language's starter once meta.json
   // loads, unless the teacher has already started editing it.
@@ -249,19 +264,77 @@ export default function TeacherView() {
 
       {/* ── Slide area ── */}
       <div className="slide-area">
-        <div className="slide-box">
-          {loading ? (
-            <div className="teacher-loading-inline">Loading slides…</div>
-          ) : error ? (
-            <div className="teacher-loading-inline">{error}</div>
-          ) : (
-            <Slides
-              sessionCode={sessionCode}
-              slides={slides}
-              currentIndex={currentIndex}
-              isTeacher
-              onSessionIdClick={() => setShowModal(true)}
-            />
+        <div className="teacher-content" ref={containerRef}>
+          <div className="slide-box">
+            {loading ? (
+              <div className="teacher-loading-inline">Loading slides…</div>
+            ) : error ? (
+              <div className="teacher-loading-inline">{error}</div>
+            ) : (
+              <Slides
+                sessionCode={sessionCode}
+                slides={slides}
+                currentIndex={currentIndex}
+                isTeacher
+                onSessionIdClick={() => setShowModal(true)}
+              />
+            )}
+          </div>
+
+          {/* ── Live-demo editor: inline split, mirrored to students ── */}
+          {demoOn && (
+            <>
+              <div
+                className="split-resizer"
+                onMouseDown={startDrag}
+                role="separator"
+                aria-orientation="vertical"
+                title="Drag to resize"
+              />
+              <div
+                className="teacher-editor-pane"
+                style={{ flex: `0 0 calc(${editorPct}% - 8px)` }}
+              >
+                <div className="tep-head">
+                  <span className="tep-file">{langMeta(language).file}</span>
+                  <span className="tep-live-badge"><span className="tep-live-dot" /> Live to students</span>
+                  <div className="tep-actions">
+                    <button className="tep-run" onClick={runDemo} disabled={demoRunning}>
+                      {demoRunning ? "Running…" : "▶ Run"}
+                    </button>
+                    <button className="tep-close" onClick={toggleDemo}>Close</button>
+                  </div>
+                </div>
+                <div className="tep-body" ref={termContainerRef}>
+                  <div className="tep-editor">
+                    <EditorPane value={demoCode} onCodeChange={onDemoCodeChange} language={language} />
+                  </div>
+                  <div
+                    className="split-resizer split-resizer--h"
+                    onMouseDown={startTermDrag}
+                    role="separator"
+                    aria-orientation="horizontal"
+                    title="Drag to resize the terminal"
+                  />
+                  <div
+                    className="tep-term-wrap"
+                    style={{ flex: `0 0 calc(${termPct}% - 8px)` }}
+                  >
+                    <div className="tep-term-head">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="4" />
+                        <polyline points="8 9 13 12 8 15" />
+                        <line x1="13" y1="15" x2="18" y2="15" />
+                      </svg>
+                      Output
+                    </div>
+                    <pre className="tep-term">
+                      {demoOutput || "▶ Run to show output to the class"}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
         <NavigationBar
@@ -300,13 +373,13 @@ export default function TeacherView() {
               key="demo"
               onClick={toggleDemo}
               className={`nav-btn ${demoOn ? "nav-btn--demo-on" : "nav-btn--ghost"}`}
-              title="Live-code beside your slide. Students watch in real time."
+              title="Open a code editor beside your slide. Students watch it in real time."
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="16 18 22 12 16 6" />
                 <polyline points="8 6 2 12 8 18" />
               </svg>
-              {demoOn ? "End Demo" : "Live Demo"}
+              Editor
             </button>,
             <button
               key="dashboard"
@@ -323,32 +396,13 @@ export default function TeacherView() {
             </button>,
           ]}
         />
-
-        {/* ── Live-demo dock ── */}
-        {demoOn && (
-          <div className="demo-dock">
-            <div className="demo-dock-head">
-              <span className="demo-dock-title">
-                <span className="demo-live-dot" /> Live Demo · {langMeta(language).file}
-              </span>
-              <div className="demo-dock-actions">
-                <button className="demo-run-btn" onClick={runDemo} disabled={demoRunning}>
-                  {demoRunning ? "Running…" : "▶ Run"}
-                </button>
-                <button className="demo-end-btn" onClick={toggleDemo}>End</button>
-              </div>
-            </div>
-            <div className="demo-dock-editor">
-              <EditorPane value={demoCode} onCodeChange={onDemoCodeChange} language={language} />
-            </div>
-            <div className="demo-dock-term">
-              {demoOutput || "▶ Run to show output to the class"}
-            </div>
-            <div className="demo-dock-foot">Students see this live. Type or run and watch their screens follow.</div>
-          </div>
-        )}
       </div>
-      <NotesSidebar currentIndex={currentIndex} notes={notes} />
+      <NotesSidebar
+        currentIndex={currentIndex}
+        notes={notes}
+        collapsed={notesCollapsed}
+        onToggle={() => setNotesCollapsed((c) => !c)}
+      />
 
       {/* Toast */}
       <div className={`lobby-toast ${linkCopied ? "lobby-toast--visible" : ""}`}>

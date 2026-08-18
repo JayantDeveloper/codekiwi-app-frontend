@@ -13,6 +13,31 @@
   min-width: 0;
 }
 
+/* Draggable divider between slides and the editor */
+.split-resizer {
+  flex: 0 0 8px;
+  align-self: stretch;
+  cursor: col-resize;
+  background: #b7d38a;
+  position: relative;
+  transition: background 0.15s;
+}
+.split-resizer:hover,
+.split-resizer:active {
+  background: #8fb73a;
+}
+.split-resizer::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 34px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
 /* Slides column — 60% */
 .student-left {
   flex: 0 0 60%;
@@ -151,10 +176,13 @@
   animation: dwPulse 1.2s ease-in-out infinite;
 }
 @keyframes dwPulse { 50% { opacity: 0.4; } }
+/* Fixed height so the editor/terminal ratio matches the student's own
+   workspace (terminal-pane is 190px there too). */
 .demo-watch-term {
   margin: 0;
-  flex: 1;
-  min-height: 0;
+  height: 190px;
+  flex: none;
+  box-sizing: border-box;
   background: #111a08;
   color: #a8d05f;
   font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
@@ -163,6 +191,31 @@
   padding: 10px 14px;
   white-space: pre-wrap;
   overflow: auto;
+}
+
+/* ── Watch-mode banner + accent so students clearly know this is the
+   teacher's editor, not their own usable one ── */
+.watch-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  background: #e0edff;
+  border: 1px solid #b7d0ff;
+  color: #1e40af;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+.watch-banner svg {
+  flex-shrink: 0;
+  color: #2563eb;
+}
+.editor-section--watching,
+.terminal-section--watching {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb, 0 4px 20px rgba(37, 99, 235, 0.25);
 }
 
 /* EditorPane fills remainder of editor-section */
