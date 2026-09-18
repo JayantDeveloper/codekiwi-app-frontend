@@ -62,9 +62,14 @@ export function passedCount(student) {
 }
 
 // Total number of coding-question slides in the deck (from the notes array).
+// Counts GRADED coding slides (those with an Expected Output block): that is
+// the score denominator, since prompt-only slides can never be marked correct.
 export function countCodingSlides(notes) {
   if (!Array.isArray(notes)) return 0;
-  return notes.filter((n) => typeof n === "string" && /^\s*code question:/i.test(n)).length;
+  return notes.filter((n) => {
+    const { isCoding, expected } = parseCodingNote(n);
+    return isCoding && typeof expected === "string" && expected.trim().length > 0;
+  }).length;
 }
 
 // Split a coding-slide speaker note into prompt + expected-output block. Mirrors
