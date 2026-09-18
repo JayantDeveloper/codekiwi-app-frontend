@@ -32,14 +32,7 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
         { method: "POST", headers: { "Content-Type": "application/json", ...teacherHeaders(sessionCode) } }
       );
       if (!resp.ok) throw new Error("Failed to end session");
-
-      const wsUrl = BACKEND_BASE_URL.replace(/^http/, "ws");
-      const ws = new WebSocket(wsUrl);
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "session-ended", sessionCode }));
-        ws.close();
-      };
-
+      // The backend broadcasts session-ended to the room itself.
       window.location.href = "https://www.codekiwi.tech/home";
     } catch (e) {
       console.error(e);

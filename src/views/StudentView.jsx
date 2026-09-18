@@ -9,6 +9,7 @@ import { BACKEND_BASE_URL } from "../config";
 import { TerminalContext } from "../context";
 import { langMeta } from "../lang";
 import { useSplitPane } from "../hooks/useSplitPane";
+import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 
 export default function StudentView() {
   const { sessionCode, studentId } = useParams();
@@ -42,13 +43,15 @@ export default function StudentView() {
       return {};
     }
   });
-  const [codingSlides, setCodingSlides] = useState([]);
+  // null until loaded: an empty list is a real answer (lecture-only deck) and
+  // must not block slide sync, but "not loaded yet" must.
+  const [codingSlides, setCodingSlides] = useState(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [pendingSlideIndex, setPendingSlideIndex] = useState(null);
   const [sessionEnded, setSessionEnded] = useState(false);
 
-  const wsRef = useRef(null);
   const { terminal } = useContext(TerminalContext);
+  const keepWorkRef = useRef(false);
 
   // Draggable slide/editor split. Editor opens at 40% of the row; the student
   // can drag the divider anywhere between 20% and 70%.
@@ -74,7 +77,11 @@ export default function StudentView() {
       try {
         const r = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/exists`);
         const { exists, active } = await r.json();
-        if (!cancelled) setSessionEnded(!exists || !active);
+        if (cancelled) return;
+        // exists:false means the backend lost the session (restart), not that
+        // the teacher ended it: show the ended screen but keep the saved work.
+        if (!exists) keepWorkRef.current = true;
+        setSessionEnded(!exists || !active);
       } catch (e) {
         console.error("exists check failed", e);
       }
@@ -83,10 +90,19 @@ export default function StudentView() {
   }, [sessionCode]);
 
   useEffect(() => {
-    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/coding-slides`)
-      .then((res) => res.json())
-      .then(({ codingSlides }) => setCodingSlides(codingSlides))
-      .catch((err) => console.error("Failed to load coding slide info:", err));
+    let cancelled = false;
+    let timer = null;
+    const load = (attempt) => {
+      fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/coding-slides`)
+        .then((res) => res.json())
+        .then(({ codingSlides }) => { if (!cancelled) setCodingSlides(codingSlides || []); })
+        .catch((err) => {
+          console.error("Failed to load coding slide info:", err);
+          if (!cancelled) timer = setTimeout(() => load(attempt + 1), Math.min(15000, 1000 * 2 ** attempt));
+        });
+    };
+    load(0);
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, [sessionCode]);
 
   useEffect(() => {
@@ -101,14 +117,9 @@ export default function StudentView() {
     return () => { cancelled = true; };
   }, [sessionCode]);
 
-  useEffect(() => {
-    if (sessionEnded) return;
-    const wsUrl = BACKEND_BASE_URL.replace(/^http/, "ws");
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-    ws.onopen = () => ws.send(JSON.stringify({ type: "join", sessionCode, studentId }));
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+  const { status: wsStatus } = useSessionWebSocket(
+    sessionCode,
+    (data) => {
       if (data.type === "lock-editors" && data.sessionCode === sessionCode) setEditorLocked(!!data.locked);
       if (data.type === "sync") setPendingSlideIndex(data.slide);
       if (data.type === "teacher-editing") setTeacherEditing(!!data.editing);
@@ -124,14 +135,10 @@ export default function StudentView() {
       if (data.type === "demo-code") setDemoCode(data.code || "");
       if (data.type === "demo-run") setDemoOutput(data.output || "");
       if (data.type === "demo-end") setDemoWatch(false);
-      if (data.type === "session-ended" && data.sessionCode === sessionCode) {
-        setSessionEnded(true);
-        try { ws.close(); } catch {}
-      }
-    };
-    ws.onerror = (e) => console.error("WS error", e);
-    return () => { try { ws.close(); } catch {} };
-  }, [sessionCode, sessionEnded, studentId]);
+      if (data.type === "session-ended" && data.sessionCode === sessionCode) setSessionEnded(true);
+    },
+    { studentId, enabled: !sessionEnded }
+  );
 
   // Keep each coding slide's work saved as the student types (or when the
   // teacher overrides), so navigating away and back restores it. Saving is
@@ -139,13 +146,13 @@ export default function StudentView() {
   // buffer never overwrites work saved from a previous page load.
   const restoredRef = useRef(false);
   useEffect(() => {
-    if (!restoredRef.current || !codingSlides.includes(currentSlideIndex)) return;
+    if (!restoredRef.current || !codingSlides || !codingSlides.includes(currentSlideIndex)) return;
     codeBySlide[currentSlideIndex] = editorContent;
     try { localStorage.setItem(storageKey, JSON.stringify(codeBySlide)); } catch {}
   }, [editorContent, currentSlideIndex, codingSlides, codeBySlide, storageKey]);
 
   useEffect(() => {
-    if (sessionEnded || pendingSlideIndex === null || codingSlides.length === 0) return;
+    if (sessionEnded || pendingSlideIndex === null || codingSlides === null) return;
     restoredRef.current = true;
     setCurrentSlideIndex(pendingSlideIndex);
     if (codingSlides.includes(pendingSlideIndex)) {
@@ -159,21 +166,32 @@ export default function StudentView() {
   }, [pendingSlideIndex, codingSlides, sessionEnded, language, terminal, codeBySlide]);
 
   useEffect(() => {
-    if (!sessionEnded) return;
+    if (!sessionEnded || keepWorkRef.current) return;
     try { localStorage.removeItem(storageKey); } catch {}
   }, [sessionEnded, storageKey]);
 
+  // Heartbeat every 3s from a stable interval. The payload is read from a ref
+  // so continuous typing does not keep resetting the timer (which used to
+  // starve the dashboard and lose the last burst of work at End).
+  const heartbeatRef = useRef({});
+  heartbeatRef.current = { studentId, name: studentName, code: editorContent || "", output: output || "", handRaised, slideIndex: currentSlideIndex };
   useEffect(() => {
     if (sessionEnded) return;
-    const interval = setInterval(() => {
-      fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/code`, {
+    const url = `${BACKEND_BASE_URL}/api/sessions/${sessionCode}/code`;
+    const post = (keepalive = false) =>
+      fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, name: studentName, code: editorContent || "", output: output || "", handRaised, slideIndex: currentSlideIndex }),
-      }).catch((err) => console.error("Failed to post code:", err));
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [sessionCode, studentId, studentName, editorContent, output, handRaised, currentSlideIndex, sessionEnded]);
+        body: JSON.stringify(heartbeatRef.current),
+        keepalive,
+      })
+        .then((r) => { if (r.status === 410) setSessionEnded(true); })
+        .catch((err) => console.error("Failed to post code:", err));
+    const interval = setInterval(() => post(), 3000);
+    const flush = () => post(true);
+    window.addEventListener("pagehide", flush);
+    return () => { clearInterval(interval); window.removeEventListener("pagehide", flush); };
+  }, [sessionCode, sessionEnded]);
 
   // Raise/lower the "I'm stuck" flag and push it immediately so the teacher
   // dashboard reflects it without waiting for the next 3s heartbeat.
@@ -186,7 +204,7 @@ export default function StudentView() {
     }).catch(() => {});
   };
 
-  const isCodeSlide = codingSlides.length > 0 && codingSlides.includes(currentSlideIndex);
+  const isCodeSlide = !!codingSlides && codingSlides.includes(currentSlideIndex);
   const showRight = isCodeSlide || demoWatch;
   const filename = langMeta(language).file;
   const langLabel = langMeta(language).label;
@@ -203,6 +221,9 @@ export default function StudentView() {
 
   return (
     <div className="student-container" ref={containerRef}>
+      {wsStatus === "reconnecting" && (
+        <div className="ws-banner" role="status">Reconnecting to your teacher…</div>
+      )}
       <div
         className={`student-left ${!showRight ? "full-width" : ""}`}
         style={showRight ? { flex: "1 1 0", maxWidth: "none" } : undefined}

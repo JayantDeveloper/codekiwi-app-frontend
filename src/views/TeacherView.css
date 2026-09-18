@@ -575,3 +575,17 @@
 .nav-btn--demo-on:hover { background: #b91c1c; }
 
 @keyframes demoPulse { 50% { opacity: 0.35; } }
+/* Connection-loss banner (WebSocket reconnecting) */
+.ws-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 8px 16px;
+  background: #b45309;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}

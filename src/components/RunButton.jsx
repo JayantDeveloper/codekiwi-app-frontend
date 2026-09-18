@@ -1,10 +1,11 @@
-import React, { useContext, useEffect, useCallback } from "react";
+import React, { useContext, useEffect, useCallback, useState } from "react";
 import { TerminalContext } from "../context";
 import "./RunButton.css";
 import { BACKEND_BASE_URL } from "../config";
 
 export default function RunButton({ code, onOutput, onGrade, language = "python", sessionCode, studentId, slideIndex }) {
   const { terminal } = useContext(TerminalContext);
+  const [running, setRunning] = useState(false);
 
   const safeScroll = useCallback(() => {
     if (!terminal) return;
@@ -26,7 +27,7 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
   }, [terminal, safeScroll]);
 
   const runCode = async () => {
-    if (!terminal) return;
+    if (!terminal || running) return;
 
     if (!code || code.trim() === "") {
       terminal.writeln("\x1b[33mNo code to run.\x1b[0m");
@@ -38,14 +39,25 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
     terminal.writeln("\x1b[32m>>> Running...\x1b[0m");
     safeScroll();
 
+    setRunning(true);
     try {
       const res = await fetch(`${BACKEND_BASE_URL}/api/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, language, sessionCode, studentId, slideIndex }),
+        signal: AbortSignal.timeout(35000),
       });
 
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) {
+        // The backend sends a plain-English reason (busy runner, locked
+        // editors, session ended); show that instead of an HTTP status.
+        const body = await res.json().catch(() => ({}));
+        const msg = body.error || `Something went wrong (HTTP ${res.status}).`;
+        const color = res.status === 503 || res.status === 429 ? "33" : "31";
+        terminal.writeln(`\x1b[${color}m${msg}\x1b[0m`);
+        safeScroll();
+        return;
+      }
 
       const data = await res.json();
       const baseOutput = (data.output || "No output.").trim();
@@ -75,17 +87,20 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
       if (onOutput) onOutput(fullOutput);
       if (onGrade) onGrade(grade);
     } catch (err) {
-      terminal.writeln("\x1b[31mError: " + err.message + "\x1b[0m");
+      const msg = err.name === "TimeoutError" ? "The code runner took too long. Try again in a few seconds." : "Error: " + err.message;
+      terminal.writeln("\x1b[31m" + msg + "\x1b[0m");
       safeScroll();
+    } finally {
+      setRunning(false);
     }
   };
 
   return (
-    <button className="run-button" onClick={runCode} disabled={!terminal}>
+    <button className="run-button" onClick={runCode} disabled={!terminal || running}>
       <svg width="9" height="9" viewBox="0 0 24 24" fill="white" stroke="none" aria-hidden="true">
         <polygon points="5,3 19,12 5,21" />
       </svg>
-      Run
+      {running ? "Running…" : "Run"}
     </button>
   );
 }

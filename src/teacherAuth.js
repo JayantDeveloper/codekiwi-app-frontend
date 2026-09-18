@@ -10,8 +10,15 @@ const key = (sessionCode) => `ck-teacher-${sessionCode}`;
 export function captureTeacherToken(sessionCode) {
   if (!sessionCode) return;
   try {
-    const t = new URLSearchParams(window.location.search).get("t");
-    if (t) sessionStorage.setItem(key(sessionCode), t);
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("t");
+    if (t) {
+      sessionStorage.setItem(key(sessionCode), t);
+      // Never leave the token on a projected address bar / in history.
+      params.delete("t");
+      const qs = params.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+    }
   } catch {}
 }
 

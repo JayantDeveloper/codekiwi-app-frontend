@@ -66,19 +66,19 @@ export default function TeacherView() {
   }, [language]);
 
   const { editorsLocked, setEditorsLocked, toggleLock } = useLockEditor(sessionCode);
-  const wsRef = useSessionWebSocket(sessionCode, (data) => {
-    if (data.type === "sync") setCurrentIndex(data.slide);
-    if (data.type === "lock-editors" && data.sessionCode === sessionCode) {
-      setEditorsLocked(!!data.locked);
-    }
-  });
+  const { send: wsSendRaw, status: wsStatus } = useSessionWebSocket(
+    sessionCode,
+    (data) => {
+      if (data.type === "sync") setCurrentIndex(data.slide);
+      if (data.type === "lock-editors" && data.sessionCode === sessionCode) {
+        setEditorsLocked(!!data.locked);
+      }
+    },
+    { teacher: true }
+  );
 
-  const wsSend = (payload) => {
-    const ws = wsRef.current;
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ ...payload, sessionCode }));
-    }
-  };
+  // Queued while disconnected and flushed on reconnect, so nothing is dropped.
+  const wsSend = (payload) => wsSendRaw({ ...payload, sessionCode });
 
   // Start/stop the live demo. On start we push the current code immediately so
   // students see it the moment they enter watch-mode.
@@ -178,14 +178,16 @@ export default function TeacherView() {
   const changeSlide = (newIndex) => {
     if (newIndex < 0 || newIndex >= slides.length) return;
     setCurrentIndex(newIndex);
-    const ws = wsRef.current;
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "change", slide: newIndex, sessionCode }));
-    }
+    wsSend({ type: "change", slide: newIndex });
   };
 
   return (
     <div className="teacher-container">
+      {wsStatus === "reconnecting" && (
+        <div className="ws-banner" role="status">
+          Connection lost. Reconnecting... students may be behind until it returns.
+        </div>
+      )}
       {/* ── Modal overlay ── */}
       {showModal && (
         <div className="lobby-overlay">
