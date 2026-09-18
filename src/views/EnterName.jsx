@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import './EnterName.css';
 import { BACKEND_BASE_URL } from "../config";
 
 export default function EnterName() {
-  const [name, setName] = useState("");
+  const location = useLocation();
+  const rejoin = !!location.state?.rejoin;
+  const [name, setName] = useState(() => (rejoin ? localStorage.getItem("studentName") || "" : ""));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ export default function EnterName() {
           </div>
           <img src="/codekiwilogo.png" className="kiwi-icon" alt="CodeKiwi" />
           <h1>Welcome to CodeKiwi!</h1> {/* updated brand name */}
-          <p>Let's get you set up for the session</p>
+          <p>{rejoin ? "The session reconnected. Enter your name again to pick up where you left off." : "Let's get you set up for the session"}</p>
         </div>
 
         <form className="enter-name-form" onSubmit={handleSubmit}>

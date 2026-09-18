@@ -4,7 +4,7 @@ import EditorPane from "../components/EditorPane";
 import RunButton from "../components/RunButton";
 import TerminalPane from "../components/TerminalPane";
 import "./StudentView.css";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config";
 import { TerminalContext } from "../context";
 import { langMeta } from "../lang";
@@ -13,6 +13,7 @@ import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 
 export default function StudentView() {
   const { sessionCode, studentId } = useParams();
+  const navigate = useNavigate();
   const [studentName] = useState(() => localStorage.getItem("studentName") || "Unnamed Student");
 
   const [slides, setSlides] = useState([]);
@@ -35,10 +36,16 @@ export default function StudentView() {
   // Student work keyed by slide index, backed by localStorage so a page
   // refresh mid-session doesn't lose it. Mutated in place; the editor's
   // `editorContent` state is what drives re-renders.
-  const storageKey = `codekiwi-code-${sessionCode}-${studentId}`;
+  // Keyed by session + name (not the seat id) so a rejoin after the server
+  // lost the roster, or a re-entered code, gets the same saved work back.
+  const storageKey = `codekiwi-code-${sessionCode}-${studentName.trim().toLowerCase()}`;
   const [codeBySlide] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem(storageKey)) || {};
+      return (
+        JSON.parse(localStorage.getItem(storageKey)) ||
+        JSON.parse(localStorage.getItem(`codekiwi-code-${sessionCode}-${studentId}`)) || // pre-rename key
+        {}
+      );
     } catch {
       return {};
     }
@@ -185,13 +192,21 @@ export default function StudentView() {
         body: JSON.stringify(heartbeatRef.current),
         keepalive,
       })
-        .then((r) => { if (r.status === 410) setSessionEnded(true); })
+        .then((r) => {
+          if (r.status === 410) setSessionEnded(true);
+          // 403: the server no longer knows this seat (it restarted). Keep the
+          // saved work and send the student back to re-enter their name.
+          if (r.status === 403) {
+            keepWorkRef.current = true;
+            navigate(`/student/${sessionCode}`, { replace: true, state: { rejoin: true } });
+          }
+        })
         .catch((err) => console.error("Failed to post code:", err));
     const interval = setInterval(() => post(), 3000);
     const flush = () => post(true);
     window.addEventListener("pagehide", flush);
     return () => { clearInterval(interval); window.removeEventListener("pagehide", flush); };
-  }, [sessionCode, sessionEnded]);
+  }, [sessionCode, sessionEnded, navigate]);
 
   // Raise/lower the "I'm stuck" flag and push it immediately so the teacher
   // dashboard reflects it without waiting for the next 3s heartbeat.
