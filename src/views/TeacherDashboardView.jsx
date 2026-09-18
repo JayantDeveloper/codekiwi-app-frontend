@@ -37,6 +37,7 @@ export default function TeacherDashboardView() {
   const { sessionCode } = useParams();
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
+  const [authError, setAuthError] = useState(false); // 403: no teacher token in this tab
   const [notes, setNotes] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastUpdated, setLastUpdated] = useState({});
@@ -63,11 +64,12 @@ export default function TeacherDashboardView() {
 
   useEffect(() => {
     if (!sessionCode) return;
-    fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/notes.json`)
-      .then((res) => res.json())
-      .then(setNotes)
+    captureTeacherToken(sessionCode); // before the first teacher-only request
+    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/notes`, { headers: teacherHeaders(sessionCode) })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data) => setNotes(Array.isArray(data) ? data : data.notes || []))
       .catch(() => {});
-    fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/meta.json`)
+    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/meta`, { headers: teacherHeaders(sessionCode) })
       .then((res) => res.json())
       .then((data) => { if (data.language) setLanguage(data.language); })
       .catch(() => {});
@@ -81,6 +83,8 @@ export default function TeacherDashboardView() {
         const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`, {
           headers: teacherHeaders(sessionCode),
         });
+        if (res.status === 403) { setAuthError(true); return; }
+        setAuthError(false);
         const data = await res.json();
         const incoming = data.students || [];
 
@@ -160,7 +164,16 @@ export default function TeacherDashboardView() {
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
-              <p>Waiting for students to join and submit code…</p>
+              {authError ? (
+                <p>
+                  This tab isn&apos;t authorized as the teacher (the link that opened it
+                  didn&apos;t carry your session token). Go to{" "}
+                  <a href="https://www.codekiwi.tech/home">codekiwi.tech/home</a> and click
+                  Rejoin on this session.
+                </p>
+              ) : (
+                <p>Waiting for students to join and submit code…</p>
+              )}
             </div>
           ) : (
             <div className="tdb-grid">

@@ -130,12 +130,12 @@ export default function TeacherView() {
       .then((data) => { setSlides(data.slides || []); setLoading(false); })
       .catch(() => { setError("Failed to load slides"); setLoading(false); });
 
-    fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/notes.json`)
-      .then((res) => res.json())
-      .then(setNotes)
+    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/notes`, { headers: teacherHeaders(sessionCode) })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data) => setNotes(Array.isArray(data) ? data : data.notes || []))
       .catch((err) => console.warn("No notes found:", err));
 
-    fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/meta.json`)
+    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/meta`, { headers: teacherHeaders(sessionCode) })
       .then((res) => res.json())
       .then((data) => { if (data.language) setLanguage(data.language); })
       .catch(() => {});

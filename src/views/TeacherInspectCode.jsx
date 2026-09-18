@@ -10,7 +10,7 @@ import NotesSidebar from "../components/NotesSidebar";
 import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
-import { teacherHeaders } from "../teacherAuth";
+import { captureTeacherToken, teacherHeaders } from "../teacherAuth";
 import { parseCodingNote } from "../studentStatus";
 import { langMeta } from "../lang";
 
@@ -49,11 +49,12 @@ export default function TeacherInspectCode() {
 
   useEffect(() => {
     if (!sessionCode) return;
-    fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/notes.json`)
-      .then((res) => res.json())
-      .then(setNotes)
+    captureTeacherToken(sessionCode);
+    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/notes`, { headers: teacherHeaders(sessionCode) })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data) => setNotes(Array.isArray(data) ? data : data.notes || []))
       .catch(() => {});
-    fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/meta.json`)
+    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/meta`, { headers: teacherHeaders(sessionCode) })
       .then((res) => res.json())
       .then((data) => { if (data.language) setLanguage(data.language); })
       .catch(() => {});

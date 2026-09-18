@@ -65,7 +65,7 @@ export default function StudentView() {
   }, [sessionCode]);
 
   useEffect(() => {
-    fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/meta.json`)
+    fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/meta`)
       .then((res) => res.json())
       .then((data) => { if (data.language) setLanguage(data.language); })
       .catch(() => {});
