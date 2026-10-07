@@ -9,7 +9,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
-import { captureTeacherToken, teacherHeaders } from "../teacherAuth";
+import { captureTeacherToken, getTeacherToken, teacherHeaders } from "../teacherAuth";
 import { langMeta } from "../lang";
 import { useSplitPane } from "../hooks/useSplitPane";
 
@@ -181,9 +181,19 @@ export default function TeacherView() {
     wsSend({ type: "change", slide: newIndex });
   };
 
+  // Without the token every teacher control is refused by the backend; say so
+  // instead of showing a view where nothing works.
+  const hasTeacherToken = !!getTeacherToken(sessionCode);
+
   return (
     <div className="teacher-container">
-      {wsStatus === "reconnecting" && (
+      {!hasTeacherToken && (
+        <div className="ws-banner" role="alert">
+          This tab isn't signed in as the teacher, so slide sync, Lock Editors and End Session won't work.
+          Reopen it with Teacher View in the CodeKiwi sidebar, or Rejoin from codekiwi.tech/home.
+        </div>
+      )}
+      {hasTeacherToken && wsStatus === "reconnecting" && (
         <div className="ws-banner" role="status">
           Connection lost. Reconnecting... students may be behind until it returns.
         </div>
