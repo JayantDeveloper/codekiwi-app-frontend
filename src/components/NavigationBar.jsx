@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../views/TeacherView.css";
 import { BACKEND_BASE_URL } from "../config";
-import { teacherHeaders } from "../teacherAuth";
+import { clearTeacherToken, teacherHeaders } from "../teacherAuth";
 
 export default function NavigationBar({ leftButtons, sessionCode, editorsLocked, onToggleLock }) {
   const [studentCount, setStudentCount] = useState(0);
@@ -32,6 +32,7 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
         { method: "POST", headers: { "Content-Type": "application/json", ...teacherHeaders(sessionCode) } }
       );
       if (!resp.ok) throw new Error("Failed to end session");
+      clearTeacherToken(sessionCode);
       // The backend broadcasts session-ended to the room itself.
       window.location.href = "https://www.codekiwi.tech/home";
     } catch (e) {
