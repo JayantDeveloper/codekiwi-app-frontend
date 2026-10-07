@@ -30,21 +30,31 @@ function writeStorage(sessionCode, token) {
   }
 }
 
+// With storage blocked, the URL is the only thing that survives a refresh, so
+// the token has to stay on it across every teacher route.
+let storageWorks = null;
+
+function setUrlToken(token) {
+  const params = new URLSearchParams(window.location.search);
+  if ((params.get("t") || "") === (token || "")) return;
+  if (token) params.set("t", token);
+  else params.delete("t");
+  const qs = params.toString();
+  // Keep history.state: React Router stores its navigation index there.
+  window.history.replaceState(window.history.state, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+}
+
 /** Read ?t= from the current URL (if present) and hold it for this session. */
 export function captureTeacherToken(sessionCode) {
   if (!sessionCode) return;
-  const params = new URLSearchParams(window.location.search);
-  const t = params.get("t");
+  const t = new URLSearchParams(window.location.search).get("t");
   if (!t) return;
   memory.set(sessionCode, t);
+  storageWorks = writeStorage(sessionCode, t);
   // Only take the token off the address bar (so it isn't projected or kept in
   // history) once a refresh can still find it. Otherwise leave it in the URL:
   // a visible token beats a teacher view that breaks on reload.
-  if (writeStorage(sessionCode, t)) {
-    params.delete("t");
-    const qs = params.toString();
-    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
-  }
+  if (storageWorks) setUrlToken("");
 }
 
 export function getTeacherToken(sessionCode) {
@@ -54,7 +64,11 @@ export function getTeacherToken(sessionCode) {
     if (stored) memory.set(sessionCode, stored);
     else captureTeacherToken(sessionCode);
   }
-  return memory.get(sessionCode) || "";
+  const token = memory.get(sessionCode) || "";
+  // In-app navigation drops the query string; put the token back so a refresh
+  // of the dashboard or inspect page still works without storage.
+  if (token && storageWorks === false && window.location.pathname.startsWith("/teacher/")) setUrlToken(token);
+  return token;
 }
 
 /** Headers to spread into a fetch for teacher-only endpoints. */
