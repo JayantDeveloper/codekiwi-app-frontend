@@ -3,7 +3,10 @@ import "../views/TeacherView.css";
 import { BACKEND_BASE_URL } from "../config";
 import { clearTeacherToken, teacherHeaders, markEnding, isEnding } from "../teacherAuth";
 
-export default function NavigationBar({ leftButtons, sessionCode, editorsLocked, onToggleLock }) {
+// lockAvailable: the current slide is a coding slide. Off a coding slide there
+// are no student editors to lock, so the button only shows if a lock is still
+// on (so the teacher can always see and lift it).
+export default function NavigationBar({ leftButtons, sessionCode, editorsLocked, onToggleLock, lockAvailable = true }) {
   const [studentCount, setStudentCount] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -91,6 +94,7 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
           Student View
         </a>
 
+        {(lockAvailable || editorsLocked) && (
         <button onClick={onToggleLock} className={`nav-btn ${editorsLocked ? "nav-btn--lock-on" : "nav-btn--lock-off"}`}>
           {editorsLocked ? (
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -105,6 +109,7 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
           )}
           {editorsLocked ? "Unlock Editors" : "Lock Editors"}
         </button>
+        )}
 
         <div className="student-count">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

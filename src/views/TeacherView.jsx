@@ -11,6 +11,7 @@ import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
 import { captureTeacherToken, getTeacherToken, teacherHeaders, isEnding } from "../teacherAuth";
 import { langMeta } from "../lang";
+import { parseCodingNote } from "../studentStatus";
 import { useSplitPane } from "../hooks/useSplitPane";
 
 const JOIN_BASE = "https://www.codekiwi.app/student";
@@ -354,6 +355,7 @@ export default function TeacherView() {
           sessionCode={sessionCode}
           editorsLocked={editorsLocked}
           onToggleLock={toggleLock}
+          lockAvailable={parseCodingNote(notes[currentIndex]).isCoding}
           leftButtons={[
             <button
               key="prev"

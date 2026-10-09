@@ -48,7 +48,7 @@ function describeGrade(grade) {
 // the terminal. While it runs, the terminal takes keyboard input: a typed line
 // is sent to the program's stdin on Enter (the terminal echoes it locally and
 // handles Backspace), Ctrl+C stops the program and Ctrl+D ends its input.
-export default function RunButton({ code, onOutput, onGrade, language = "python", sessionCode, studentId, slideIndex }) {
+export default function RunButton({ code, onOutput, onGrade, language = "python", sessionCode, studentId, slideIndex, locked = false }) {
   const { terminal } = useContext(TerminalContext);
   const [running, setRunning] = useState(false);
   const wsRef = useRef(null);
@@ -272,7 +272,13 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
   };
 
   return (
-    <button className={`run-button ${running ? "run-button--stop" : ""}`} onClick={runCode} disabled={!terminal}>
+    <button
+      className={`run-button ${running ? "run-button--stop" : ""}`}
+      onClick={runCode}
+      // The server refuses runs while editors are locked; a running program can still be stopped.
+      disabled={!terminal || (locked && !running)}
+      title={locked && !running ? "Your teacher locked editors" : undefined}
+    >
       {running ? (
         <svg width="9" height="9" viewBox="0 0 24 24" fill="white" stroke="none" aria-hidden="true">
           <rect x="4" y="4" width="16" height="16" rx="2" />

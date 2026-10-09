@@ -20,6 +20,7 @@ import {
   STATUS_FILTERS,
   passedCount,
   countCodingSlides,
+  parseCodingNote,
 } from "../studentStatus";
 
 SyntaxHighlighter.registerLanguage("python", python);
@@ -259,6 +260,7 @@ export default function TeacherDashboardView() {
         sessionCode={sessionCode}
         editorsLocked={editorsLocked}
         onToggleLock={toggleLock}
+        lockAvailable={parseCodingNote(notes[currentIndex]).isCoding}
         leftButtons={[
           <button
             key="presentation"

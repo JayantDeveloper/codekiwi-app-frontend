@@ -306,9 +306,27 @@ export default function StudentView() {
             </>
           ) : (
           <>
-          <div className="editor-section">
+          {editorLocked && (
+            <div className="lock-banner" role="status">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Your teacher locked editors. Eyes up front! You can still read your code.
+            </div>
+          )}
+          <div className={`editor-section ${editorLocked ? "editor-section--locked" : ""}`}>
             <div className="editor-header">
               <span className="editor-filename">{filename}</span>
+              {editorLocked && (
+                <span className="locked-badge">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  Locked
+                </span>
+              )}
               {teacherEditing && (
                 <span className="teacher-editing-badge">
                   <span className="teacher-editing-dot" />
@@ -339,6 +357,7 @@ export default function StudentView() {
                   sessionCode={sessionCode}
                   studentId={studentId}
                   slideIndex={currentSlideIndex}
+                  locked={editorLocked}
                 />
               </div>
             </div>

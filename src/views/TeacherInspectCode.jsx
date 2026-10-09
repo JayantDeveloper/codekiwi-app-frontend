@@ -378,6 +378,7 @@ export default function TeacherInspectCode() {
           sessionCode={sessionCode}
           editorsLocked={editorsLocked}
           onToggleLock={toggleLock}
+          lockAvailable={isCodingSlide}
           leftButtons={[
             <button
               key="presentation"
