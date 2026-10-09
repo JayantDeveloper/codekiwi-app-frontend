@@ -1,3 +1,4 @@
+import { parseCodingNote } from "./testCases";
 // Shared student-status logic for the teacher views.
 //
 // Status is driven by real signals the backend records on each run
@@ -61,33 +62,13 @@ export function passedCount(student) {
   return Object.values(grades).filter((g) => g && g.passed).length;
 }
 
-// Total number of coding-question slides in the deck (from the notes array).
-// Counts GRADED coding slides (those with an Expected Output block): that is
+// Total number of GRADED coding slides in the deck (those with test cases):
 // the score denominator, since prompt-only slides can never be marked correct.
 export function countCodingSlides(notes) {
   if (!Array.isArray(notes)) return 0;
-  return notes.filter((n) => {
-    const { isCoding, expected } = parseCodingNote(n);
-    return isCoding && typeof expected === "string" && expected.trim().length > 0;
-  }).length;
+  return notes.filter((n) => parseCodingNote(n).tests.length > 0).length;
 }
 
-// Split a coding-slide speaker note into prompt + expected-output block. Mirrors
-// the backend grader so the teacher inspect view can show them separately (the
-// expected answer is teacher-only; students never receive the notes).
-const QUESTION_MARKER = /^\s*code question:\s*/i;
-const EXPECTED_MARKER = /\n[^\S\n]*expected output:[^\S\n]*\n?/i;
-
-export function parseCodingNote(note) {
-  if (typeof note !== "string" || !QUESTION_MARKER.test(note)) {
-    return { isCoding: false, prompt: "", expected: null };
-  }
-  const body = note.replace(QUESTION_MARKER, "");
-  const m = body.match(EXPECTED_MARKER);
-  if (!m) return { isCoding: true, prompt: body.trim(), expected: null };
-  return {
-    isCoding: true,
-    prompt: body.slice(0, m.index).trim(),
-    expected: body.slice(m.index + m[0].length).replace(/^\n+/, "").replace(/\n+$/, ""),
-  };
-}
+// Parsing is shared with the backend grader and the add-on (see testCases.js).
+// The notes (and so the answers) are teacher-only; students never receive them.
+export { parseCodingNote };

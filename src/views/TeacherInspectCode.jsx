@@ -305,9 +305,9 @@ export default function TeacherInspectCode() {
             </svg>
             <span className="inspect-question-label">Slide {currentIndex + 1}:</span>
             <span className="inspect-question-text">{parsedNote.prompt}</span>
-            {parsedNote.expected !== null && (
+            {parsedNote.tests.length > 0 && (
               <span
-                title="Runs are auto-checked against this expected output"
+                title={parsedNote.tests.map((t, i) => `Test ${i + 1}: ${t.input ? t.input.replace(/\n/g, " ⏎ ") : "(no input)"} → ${t.output.replace(/\n/g, " ⏎ ")}`).join("\n")}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: "5px", marginLeft: "auto",
                   flexShrink: 0, padding: "2px 8px", borderRadius: "6px",
@@ -316,7 +316,9 @@ export default function TeacherInspectCode() {
                   maxWidth: "40%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}
               >
-                Expected: {parsedNote.expected.replace(/\n/g, "⏎")}
+                {parsedNote.tests.length === 1 && !parsedNote.tests[0].input
+                  ? `Expected: ${parsedNote.tests[0].output.replace(/\n/g, "⏎")}`
+                  : `${parsedNote.tests.length} test${parsedNote.tests.length === 1 ? "" : "s"}${parsedNote.lenient ? "" : " · exact"}`}
               </span>
             )}
           </div>

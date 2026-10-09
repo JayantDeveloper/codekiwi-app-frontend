@@ -6,6 +6,44 @@ import { getTeacherToken } from "../teacherAuth";
 
 const LIVE_CURSOR = "#a8d05f";
 
+// One line of a test's text for the terminal: newlines shown as ⏎, capped.
+const oneLine = (text, max = 70) => {
+  const s = String(text || "").replace(/\s+$/, "").replace(/\n/g, " ⏎ ");
+  return s.length > max ? s.slice(0, max - 1) + "…" : s;
+};
+
+/**
+ * Terminal feedback for a run's grade: a colored summary line, plus details of
+ * the first failing test so the student sees what went in and what was expected.
+ */
+function describeGrade(grade) {
+  if (grade.stopped) return { summary: "Stopped. This run wasn't checked.", color: "2", details: [] };
+  if (!grade.graded) {
+    return grade.isError
+      ? { summary: "✗ Your program hit an error. Fix it and run again.", color: "31", details: [] }
+      : { summary: "✔ Done", color: "32", details: [] };
+  }
+  const total = grade.total || 1;
+  if (grade.passed) {
+    return { summary: total > 1 ? `✔ All ${total} tests passed` : "✔ Correct — your output matches!", color: "32", details: [] };
+  }
+  if (grade.compileError) return { summary: "✗ Your program hit an error. Fix it and run again.", color: "31", details: [] };
+  const summary = total > 1 ? `✗ ${grade.passedCount || 0} of ${total} tests passed` : "✗ Not quite — your output doesn't match the expected answer yet.";
+  const tests = grade.tests || [];
+  const i = tests.findIndex((t) => !t.passed);
+  const details = [];
+  if (i >= 0) {
+    const t = tests[i];
+    if (total > 1) details.push(`  Test ${i + 1}:`);
+    if (t.input) details.push(`  input     ${oneLine(t.input)}`);
+    details.push(`  expected  ${oneLine(t.expected)}`);
+    // Show as many of the program's last lines as the expected answer has.
+    const lines = Math.min(5, Math.max(1, String(t.expected || "").split("\n").length));
+    details.push(`  got       ${oneLine(String(t.got || "").replace(/\s+$/, "").split("\n").slice(-lines).join("\n")) || "(no output)"}`);
+  }
+  return { summary, color: grade.isError ? "31" : "33", details };
+}
+
 // Each Run opens its own socket to /run and the program's output streams into
 // the terminal. While it runs, the terminal takes keyboard input: a typed line
 // is sent to the program's stdin on Enter (the terminal echoes it locally and
@@ -92,6 +130,7 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
     let done = false;
     let inputSub = null;
     let live = false;
+    let grading = false;
 
     const send = (msg) => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -106,8 +145,17 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
       safeScroll();
     };
 
+    // Leaving the slide stops a running program. Once its tests are being
+    // checked, though, the grade still counts: let it finish in the
+    // background, detached from this terminal (which now shows another slide).
+    let detached = false;
     const cancel = () => {
       if (done) return;
+      if (grading) {
+        detached = true;
+        end();
+        return;
+      }
       end();
       try { ws.close(); } catch {}
     };
@@ -122,6 +170,11 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
     };
 
     const onKeys = (data) => {
+      // While tests are checked only Ctrl+C (stop) means anything.
+      if (grading) {
+        if (data.includes("\x03")) send({ type: "stop" });
+        return;
+      }
       for (const ch of data.startsWith("\x1b") ? "" : data) {
         if (ch === "\r" || ch === "\n") {
           terminal.write("\r\n");
@@ -162,6 +215,11 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
       } catch {
         return;
       }
+      if (detached) {
+        // Finished in the background after a slide change: nothing to draw.
+        if (msg.type === "exit" || msg.type === "error") ws.close();
+        return;
+      }
       if (msg.type === "started") {
         if (msg.compiling) status("Compiling…");
         else goLive();
@@ -173,30 +231,29 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
         transcript += msg.data;
         onOutput?.(transcript);
         safeScroll();
+      } else if (msg.type === "grading") {
+        // Test cases run after the program ends: keep the student's output
+        // intact and show a status line until the grade arrives.
+        if (transcript && !transcript.endsWith("\n")) terminal.write("\r\n");
+        status("Checking tests…");
+        grading = true;
       } else if (msg.type === "exit") {
-        // The last line is autograde feedback when the slide has an expected
-        // answer, otherwise a plain "Done". `footerText` is the plain-text
-        // version stored in the student's output so the teacher sees it too;
-        // the colored version is drawn in the student's terminal.
-        closeStatus();
+        // Clear the "Checking tests…" line, or end the program's last line.
+        if (grading && statusOpen) {
+          terminal.write("\r\x1b[2K");
+          statusOpen = false;
+        } else closeStatus();
+        const atLineStart = grading || !transcript || transcript.endsWith("\n");
+        if (msg.notice) terminal.write(`${atLineStart ? "" : "\r\n"}\x1b[33m${msg.notice}\x1b[0m\r\n`);
+        else if (!atLineStart) terminal.write("\r\n");
+
+        // The last lines are autograde feedback (or a plain "Done"). The plain
+        // summary is also stored in the student's output so the teacher sees it.
         const grade = msg.grade || { graded: false };
-        let footerText = "✔ Done";
-        let color = "32";
-        if (grade.stopped) {
-          footerText = "Stopped. This run wasn't checked.";
-          color = "2";
-        } else if (grade.graded && grade.passed) footerText = "✔ Correct — your output matches!";
-        else if (grade.isError) {
-          footerText = "✗ Your program hit an error. Fix it and run again.";
-          color = "31";
-        } else if (grade.graded && !grade.passed) {
-          footerText = "✗ Not quite — your output doesn't match the expected answer yet.";
-          color = "33";
-        }
-        if (msg.notice) terminal.write(`${transcript && !transcript.endsWith("\n") ? "\r\n" : ""}\x1b[33m${msg.notice}\x1b[0m\r\n`);
-        else if (transcript && !transcript.endsWith("\n")) terminal.write("\r\n");
-        terminal.write(`\x1b[${color}m${footerText}\x1b[0m\r\n`);
-        onOutput?.(`${(msg.output || transcript || "No output.").replace(/\n+$/, "")}\n${footerText}`);
+        const { summary, color, details } = describeGrade(grade);
+        terminal.write(`\x1b[${color}m${summary}\x1b[0m\r\n`);
+        details.forEach((d) => terminal.write(`\x1b[2m${d}\x1b[0m\r\n`));
+        onOutput?.(`${(msg.output || transcript || "No output.").replace(/\n+$/, "")}\n${summary}`);
         onGrade?.(grade);
         end();
       } else if (msg.type === "error") {
@@ -208,7 +265,7 @@ export default function RunButton({ code, onOutput, onGrade, language = "python"
     };
 
     ws.onclose = () => {
-      if (done) return;
+      if (done || detached) return;
       terminal.write("\r\n\x1b[33mLost connection to the code runner. Run again to retry.\x1b[0m\r\n");
       end();
     };
