@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../views/TeacherView.css";
 import { BACKEND_BASE_URL } from "../config";
-import { clearTeacherToken, teacherHeaders } from "../teacherAuth";
+import { clearTeacherToken, teacherHeaders, markEnding, isEnding } from "../teacherAuth";
 
 export default function NavigationBar({ leftButtons, sessionCode, editorsLocked, onToggleLock }) {
   const [studentCount, setStudentCount] = useState(0);
@@ -9,10 +9,12 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
 
   useEffect(() => {
     const fetchStudentCount = async () => {
+      if (isEnding(sessionCode)) return;
       try {
         const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`, {
           headers: teacherHeaders(sessionCode),
         });
+        if (isEnding(sessionCode)) return;
         const data = await res.json();
         setStudentCount(data.students?.length || 0);
       } catch (err) {
@@ -26,6 +28,7 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
 
   const handleEndSession = async () => {
     setShowConfirm(false);
+    markEnding(sessionCode);
     try {
       const resp = await fetch(
         `${BACKEND_BASE_URL}/api/sessions/${sessionCode}/end`,
@@ -37,6 +40,7 @@ export default function NavigationBar({ leftButtons, sessionCode, editorsLocked,
       window.location.href = "https://www.codekiwi.tech/home";
     } catch (e) {
       console.error(e);
+      markEnding(sessionCode, false);
       alert("Could not end session. Please try again.");
     }
   };

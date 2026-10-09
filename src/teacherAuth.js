@@ -71,6 +71,18 @@ export function getTeacherToken(sessionCode) {
   return memory.get(sessionCode) || "";
 }
 
+// Sessions this tab is ending. Teacher polls skip them, since a poll landing
+// between the backend ending the session and the redirect would 403 (and the
+// dashboard would flash "not authorized").
+const ending = new Set();
+export function markEnding(sessionCode, on = true) {
+  if (on) ending.add(sessionCode);
+  else ending.delete(sessionCode);
+}
+export function isEnding(sessionCode) {
+  return ending.has(sessionCode);
+}
+
 /** Forget the token once the session has ended. */
 export function clearTeacherToken(sessionCode) {
   memory.delete(sessionCode);

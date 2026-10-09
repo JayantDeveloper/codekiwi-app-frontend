@@ -12,7 +12,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
-import { captureTeacherToken, teacherHeaders } from "../teacherAuth";
+import { captureTeacherToken, teacherHeaders, isEnding } from "../teacherAuth";
 import {
   getStatus,
   STATUS_LABEL,
@@ -81,11 +81,12 @@ export default function TeacherDashboardView() {
     if (!sessionCode) return;
     captureTeacherToken(sessionCode);
     const fetchStudents = async () => {
+      if (isEnding(sessionCode)) return;
       try {
         const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`, {
           headers: teacherHeaders(sessionCode),
         });
-        if (res.status === 403) { setAuthError(true); return; }
+        if (res.status === 403) { if (!isEnding(sessionCode)) setAuthError(true); return; }
         setAuthError(false);
         const data = await res.json();
         const incoming = data.students || [];

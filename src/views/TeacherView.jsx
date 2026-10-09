@@ -9,7 +9,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config";
 import { useSessionWebSocket } from "../hooks/useSessionWebSocket";
 import { useLockEditor } from "../hooks/useLockEditor";
-import { captureTeacherToken, getTeacherToken, teacherHeaders } from "../teacherAuth";
+import { captureTeacherToken, getTeacherToken, teacherHeaders, isEnding } from "../teacherAuth";
 import { langMeta } from "../lang";
 import { useSplitPane } from "../hooks/useSplitPane";
 
@@ -144,6 +144,7 @@ export default function TeacherView() {
   useEffect(() => {
     if (!sessionCode) return;
     const poll = async () => {
+      if (isEnding(sessionCode)) return;
       try {
         const res = await fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/students`, {
           headers: teacherHeaders(sessionCode),
