@@ -36,3 +36,29 @@
   opacity: 0 !important;
   visibility: hidden !important;
 }
+
+/* While a program runs the terminal takes keyboard input: show the cursor and
+   a small badge so students know they can type. */
+.terminal-pane {
+  position: relative;
+}
+
+.terminal-pane.is-live .xterm-cursor {
+  display: inline-block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.terminal-pane.is-live::after {
+  content: "Running · type input, Enter to send";
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  padding: 3px 9px;
+  font: 600 11px/1.4 'Fira Code', 'Monaco', 'Consolas', monospace;
+  color: #a8d05f;
+  background: rgba(107, 143, 43, 0.15);
+  border: 1px solid rgba(107, 143, 43, 0.4);
+  border-radius: 999px;
+  pointer-events: none;
+}

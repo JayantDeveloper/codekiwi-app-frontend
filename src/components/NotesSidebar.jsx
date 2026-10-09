@@ -1,7 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import "./NotesSidebar.css";
 
-export default function NotesSidebar({ currentIndex, notes, collapsed, onToggle }) {
+// Collapsible speaker notes. A view can control it (`collapsed` + `onToggle`);
+// a view that doesn't gets its own state, starting collapsed.
+export default function NotesSidebar({ currentIndex, notes, collapsed: collapsedProp, onToggle: onToggleProp }) {
+  const [collapsedState, setCollapsedState] = useState(true);
+  const controlled = collapsedProp !== undefined;
+  const collapsed = controlled ? collapsedProp : collapsedState;
+  const onToggle = controlled ? onToggleProp : () => setCollapsedState((c) => !c);
+
   if (collapsed) {
     return (
       <button className="notes-rail" onClick={onToggle} title="Show speaker notes">

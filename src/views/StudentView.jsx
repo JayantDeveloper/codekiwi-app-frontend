@@ -21,6 +21,10 @@ export default function StudentView() {
   const [slidesError, setSlidesError] = useState(null);
 
   const [language, setLanguage] = useState("python");
+  // The starter code depends on the language, which arrives separately from
+  // the slides. Seeding before it's known gave C++/Java/JS students the Python
+  // starter, which was then saved for that slide and never replaced.
+  const [languageReady, setLanguageReady] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [output, setOutput] = useState("");
   const [editorLocked, setEditorLocked] = useState(false);
@@ -75,7 +79,8 @@ export default function StudentView() {
     fetch(`${BACKEND_BASE_URL}/api/sessions/${sessionCode}/meta`)
       .then((res) => res.json())
       .then((data) => { if (data.language) setLanguage(data.language); })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLanguageReady(true));
   }, [sessionCode]);
 
   useEffect(() => {
@@ -159,7 +164,7 @@ export default function StudentView() {
   }, [editorContent, currentSlideIndex, codingSlides, codeBySlide, storageKey]);
 
   useEffect(() => {
-    if (sessionEnded || pendingSlideIndex === null || codingSlides === null) return;
+    if (sessionEnded || pendingSlideIndex === null || codingSlides === null || !languageReady) return;
     restoredRef.current = true;
     setCurrentSlideIndex(pendingSlideIndex);
     if (codingSlides.includes(pendingSlideIndex)) {
@@ -170,7 +175,7 @@ export default function StudentView() {
     }
     setOutput("");
     if (terminal) terminal.reset();
-  }, [pendingSlideIndex, codingSlides, sessionEnded, language, terminal, codeBySlide]);
+  }, [pendingSlideIndex, codingSlides, sessionEnded, language, languageReady, terminal, codeBySlide]);
 
   useEffect(() => {
     if (!sessionEnded || keepWorkRef.current) return;

@@ -33,7 +33,7 @@
 .tdb-title {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #d5f1d5;
+  color: #386641;
   margin: 0;
 }
 
@@ -51,6 +51,12 @@
   gap: 14px;
   overflow-y: auto;
   padding-bottom: 12px;
+  /* Fill the rest of the column and scroll; rows keep their natural height
+     instead of being squashed to fit a full class. */
+  flex: 1;
+  min-height: 0;
+  grid-auto-rows: max-content;
+  align-content: start;
 }
 
 .tdb-grid::-webkit-scrollbar { width: 6px; }

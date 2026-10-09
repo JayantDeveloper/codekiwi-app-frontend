@@ -3,6 +3,7 @@ import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import python from "react-syntax-highlighter/dist/esm/languages/hljs/python";
 import javascript from "react-syntax-highlighter/dist/esm/languages/hljs/javascript";
 import java from "react-syntax-highlighter/dist/esm/languages/hljs/java";
+import cpp from "react-syntax-highlighter/dist/esm/languages/hljs/cpp";
 import { vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import "./TeacherDashboardView.css";
 import NavigationBar from "../components/NavigationBar";
@@ -24,6 +25,7 @@ import {
 SyntaxHighlighter.registerLanguage("python", python);
 SyntaxHighlighter.registerLanguage("javascript", javascript);
 SyntaxHighlighter.registerLanguage("java", java);
+SyntaxHighlighter.registerLanguage("cpp", cpp);
 
 function timeAgo(ts) {
   if (!ts) return null;
@@ -236,7 +238,7 @@ export default function TeacherDashboardView() {
                         }}
                         codeTagProps={{ style: { fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace" } }}
                       >
-                        {student.code?.slice(0, 220) || "# No code yet"}
+                        {student.code?.slice(0, 220) || `${language === "python" ? "#" : "//"} No code yet`}
                       </SyntaxHighlighter>
                     </div>
                   </div>

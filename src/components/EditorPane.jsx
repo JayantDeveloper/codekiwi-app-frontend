@@ -74,6 +74,11 @@ export default function EditorPane({ value, onCodeChange, readOnly = false, lang
           padding: { top: 16, bottom: 16 },
           scrollBeyondLastLine: false,
           minimap: { enabled: false },
+          // No scrollbar map: its cursor/bracket marks read as stray gray boxes
+          // in a short student program.
+          overviewRulerLanes: 0,
+          hideCursorInOverviewRuler: true,
+          overviewRulerBorder: false,
           fontSize: 14,
           lineHeight: 22,
           fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",

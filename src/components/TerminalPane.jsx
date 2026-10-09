@@ -51,11 +51,15 @@ export default function TerminalPane({ onOutputChange }) {
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
 
-    try {
-      requestAnimationFrame(() => fitAddon.fit());
-    } catch (e) {
-      console.warn("Fit error:", e);
-    }
+    // Fits run a frame later, when the terminal may already be disposed (the
+    // student moved to a slide with no editor), so check and catch inside.
+    let disposed = false;
+    const fit = () =>
+      requestAnimationFrame(() => {
+        if (disposed) return;
+        try { fitAddon.fit(); } catch (e) { console.warn("Fit error:", e); }
+      });
+    fit();
 
     setTerminal(term);
 
@@ -68,14 +72,16 @@ export default function TerminalPane({ onOutputChange }) {
     let resizeTimeout;
     const handleResize = () => {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        try { requestAnimationFrame(() => fitAddon.fit()); } catch (e) {}
-      }, 100);
+      resizeTimeout = setTimeout(fit, 100);
     };
 
-    window.addEventListener("resize", handleResize);
+    // Refit whenever the pane itself changes size (window resize or dragging a
+    // split divider), not only on window resize.
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(containerRef.current);
     return () => {
-      window.removeEventListener("resize", handleResize);
+      disposed = true;
+      observer.disconnect();
       clearTimeout(resizeTimeout);
       term.dispose();
     };

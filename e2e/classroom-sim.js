@@ -7,9 +7,12 @@
 const { chromium, webkit, firefox } = require('playwright');
 const fs = require('fs'); const path = require('path'); const os = require('os');
 const { SEC } = process.env;
-const BACKEND = 'https://codekiwi-app-backend.onrender.com';
-const APP = 'https://codekiwi.app';
+// Defaults hit production. For a local stack:
+//   BACKEND=http://localhost:4000 APP=http://localhost:3000 SKIP_SITE=1 SEC=... node e2e/classroom-sim.js
+const BACKEND = process.env.BACKEND || 'https://codekiwi-app-backend.onrender.com';
+const APP = process.env.APP || 'https://codekiwi.app';
 const SITE = 'https://www.codekiwi.tech';
+const SKIP_SITE = process.env.SKIP_SITE === '1'; // don't register the sim teacher on codekiwi.tech
 const results = []; const ok = (name, pass, detail = '') => { results.push([name, pass]); console.log(`${pass ? 'PASS' : 'FAIL'} ${name}${detail ? '  — ' + detail : ''}`); };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -28,11 +31,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const up = await (await fetch(`${BACKEND}/api/sessions/upload`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-codekiwi-secret': SEC },
     body: JSON.stringify({ slidesUrl: 'https://docs.google.com/presentation/d/sim', notes, thumbnailUrls: thumbs, language: 'python' }) })).json();
   const { sessionCode: code, teacherToken: tok } = up;
-  const reg = await (await fetch(`${SITE}/api/sessions/register`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-codekiwi-secret': SEC },
+  const reg = SKIP_SITE ? { registered: 'skipped' } : await (await fetch(`${SITE}/api/sessions/register`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-codekiwi-secret': SEC },
     body: JSON.stringify({ sessionCode: code, teacherEmail, presentationId: 'sim', title: 'Sim Lesson' }) })).json();
   fs.writeFileSync(path.join(__dirname, 'sim-session.txt'), code);
   ok('add-on Start Lesson: session created', !!code && !!tok, `code ${code}`);
-  ok('brand-new teacher registered with the site (history will save)', reg.registered === true);
+  if (!SKIP_SITE) ok('brand-new teacher registered with the site (history will save)', reg.registered === true);
 
   // ── 2. Teacher in a cookie-blocked Chrome ──
   const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-sim-'));
@@ -41,7 +44,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const tctx = await chromium.launchPersistentContext(prof, { channel: 'chrome', headless: true, viewport: { width: 1440, height: 900 } });
   const t = tctx.pages()[0] || await tctx.newPage();
   const tDialogs = []; t.on('dialog', d => { tDialogs.push(d.message()); d.dismiss(); });
-  const t403 = []; t.on('response', r => { if (r.url().includes('onrender.com') && r.status() === 403) t403.push(r.url()); });
+  const t403 = []; t.on('response', r => { if (r.url().startsWith(BACKEND) && r.status() === 403) t403.push(r.url()); });
   await t.goto(`${APP}/teacher/${code}?t=${tok}`); await sleep(3500);
   ok('teacher browser really has storage blocked', await t.evaluate(() => { try { sessionStorage.getItem('x'); return false; } catch { return true; } }));
   ok('teacher token not in address bar', !/[?&]t=/.test(t.url()));
@@ -66,6 +69,10 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       if (d.type === 'sync') st.slide = d.slide; if (d.type === 'lock-editors' && d.sessionCode === code) st.locked = d.locked;
       if (d.type === 'session-ended' && d.sessionCode === code) st.ended = true; if (d.type === 'demo-run') st.demo = d.output; } catch {} }));
     p.on('response', async r => { if (r.url().endsWith('/api/run')) { let b = {}; try { b = await r.json(); } catch {} st.runs.push({ status: r.status(), ...b }); } });
+    // Interactive runs stream over a /run WebSocket; its final frame carries the grade.
+    p.on('websocket', ws => { if (!ws.url().endsWith('/run')) return; ws.on('framereceived', f => { try { const d = JSON.parse(f.payload);
+      if (d.type === 'exit') st.runs.push({ status: 200, output: d.output, grade: d.grade });
+      if (d.type === 'error') st.runs.push({ status: 0, error: d.message }); } catch {} }); });
     return st;
   };
   const join = async (st) => {
@@ -130,7 +137,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   // ── 8. Lock editors: enforced for everyone, including on the server ──
   await t.click('text=Lock Editors'); await sleep(2500);
   ok('every student received the lock', Object.values(S).every(s => s.locked === true), Object.values(S).filter(s => s.locked !== true).map(s => s.name).join(','));
-  const lockedRun = await S.Fay.p.evaluate(async ([c, id]) => (await fetch('https://codekiwi-app-backend.onrender.com/api/run', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'print(1)', language: 'python', sessionCode: c, studentId: id, slideIndex: 1 }) })).status, [code, S.Fay.p.url().split('/').pop()]);
+  const lockedRun = await S.Fay.p.evaluate(async ([c, id, backend]) => (await fetch(`${backend}/api/run`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: 'print(1)', language: 'python', sessionCode: c, studentId: id, slideIndex: 1 }) })).status, [code, S.Fay.p.url().split('/').pop(), BACKEND]);
   ok('server refuses runs while locked (even bypassing the UI)', lockedRun === 423, `HTTP ${lockedRun}`);
   await t.click('text=Unlock Editors'); await sleep(2000);
   ok('unlock reaches everyone', Object.values(S).every(s => s.locked === false));
