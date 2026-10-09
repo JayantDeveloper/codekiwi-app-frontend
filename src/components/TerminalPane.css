@@ -62,3 +62,32 @@
   border-radius: 999px;
   pointer-events: none;
 }
+
+/* xterm draws the bar cursor as an inset shadow the full height of the row,
+   and lineHeight 1.6 makes rows tall, so it towered over the text. Draw a
+   text-height bar instead (blinks with xterm's blink class). */
+.terminal-pane.is-live .xterm-cursor.xterm-cursor-bar {
+  position: relative;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.terminal-pane.is-live .xterm-cursor.xterm-cursor-bar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 1.15em;
+  transform: translateY(-50%);
+  background: #a8d05f;
+  border-radius: 1px;
+}
+
+.terminal-pane.is-live .xterm-cursor.xterm-cursor-bar.xterm-cursor-blink::before {
+  animation: ck-cursor-blink 1s step-end infinite;
+}
+
+@keyframes ck-cursor-blink {
+  50% { opacity: 0; }
+}
