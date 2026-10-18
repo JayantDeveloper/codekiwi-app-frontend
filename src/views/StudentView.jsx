@@ -68,6 +68,36 @@ export default function StudentView() {
   // can drag the divider anywhere between 20% and 70%.
   const { editorPct, containerRef, startDrag } = useSplitPane(40, { min: 20, max: 70 });
 
+  // Phone layout, decided from the phone's real shape rather than the CSS
+  // orientation query. An open keyboard shrinks the visible height, which on a
+  // short phone (iPhone SE) makes the page wider than tall and would flip a
+  // portrait phone into the landscape layout mid-typing. The tallest height
+  // seen at the current width is the phone's real height; the width only
+  // changes on rotation. Well below that height means the keyboard is open,
+  // and the editor gets the whole screen.
+  const [phone, setPhone] = useState({ layout: null, typing: false });
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const size = () => ({ w: vv ? vv.width : window.innerWidth, h: vv ? vv.height : window.innerHeight });
+    let { w: width, h: tallest } = size();
+    const update = () => {
+      const { w, h } = size();
+      if (w !== width) { width = w; tallest = h; } // rotated
+      tallest = Math.max(tallest, h);
+      const layout = width < tallest && width <= 700 ? "portrait"
+        : width >= tallest && tallest <= 500 ? "landscape" : null;
+      const typing = layout === "portrait" && h < tallest * 0.75;
+      setPhone((p) => (p.layout === layout && p.typing === typing ? p : { layout, typing }));
+    };
+    update();
+    vv?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   useEffect(() => {
     fetch(`${BACKEND_BASE_URL}/slides/${sessionCode}/index.json`)
       .then((res) => res.json())
@@ -240,7 +270,14 @@ export default function StudentView() {
   }
 
   return (
-    <div className="student-container" ref={containerRef}>
+    <div
+      className={[
+        "student-container",
+        phone.layout && `student-container--phone-${phone.layout}`,
+        phone.typing && isCodeSlide && "student-container--typing",
+      ].filter(Boolean).join(" ")}
+      ref={containerRef}
+    >
       {wsStatus === "reconnecting" && (
         <div className="ws-banner" role="status">Reconnecting to your teacher…</div>
       )}
