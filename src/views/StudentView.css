@@ -419,3 +419,56 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+/* ── Phones ──
+   Portrait: stack the slide (at its real aspect ratio) over the editor and a
+   shorter output pane, so the question stays visible and Run stays on screen.
+   Landscape: keep the side-by-side split but give the height back to content.
+   !important beats the inline flex sizes set for the desktop drag-split. */
+@media (max-width: 700px) and (orientation: portrait) {
+  .student-container {
+    flex-direction: column;
+    height: 100dvh;
+  }
+  .student-container .split-resizer { display: none; }
+  .student-left {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    padding: 8px 8px 0;
+  }
+  .student-left.full-width { flex: 1 1 auto !important; }
+  .student-right {
+    flex: 1 1 0 !important;
+    max-width: 100% !important;
+    min-height: 0;
+    padding: 8px;
+  }
+  .student-container .session-id { display: none; }
+  .student-container .slides-container { padding: 0; height: auto; }
+  .student-container .slide-wrapper,
+  .student-container .slide-wrapper > * { height: auto; }
+  .student-container .slide-frame { flex: 0 0 auto; }
+  .student-container .lang-badge { display: none; }
+  .student-container .editor-header { padding: 0 8px; }
+  .student-container .editor-header-right { gap: 8px; }
+  .student-container .terminal-pane { height: 22dvh; min-height: 110px; }
+  .student-container .lock-banner,
+  .student-container .watch-banner { font-size: 12px; padding: 6px 10px; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .student-container { height: 100dvh; }
+  .student-left { padding: 6px; }
+  .student-right { padding: 6px 6px 6px 0; gap: 6px; }
+  .student-container .session-id { display: none; }
+  .student-container .slides-container { padding: 0; justify-content: center; }
+  .student-container .slide-frame { flex: 0 0 auto; max-height: 100%; }
+  .student-container .lang-badge { display: none; }
+  .student-container .editor-header { height: 34px; padding: 0 8px; }
+  .student-container .terminal-header { height: 28px; }
+  .student-container .terminal-pane { height: 30dvh; }
+  /* A slide with no editor is height-limited here: size it from the height so
+     it doesn't stretch into black side bars. */
+  .student-left.full-width .slides-container { align-items: center; }
+  .student-left.full-width .slide-frame { width: auto; height: 100%; max-width: 100%; }
+}

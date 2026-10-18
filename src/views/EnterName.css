@@ -10,6 +10,7 @@
 }
 
 .enter-name-content {
+  box-sizing: border-box;
   background: white;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(107, 143, 43, 0.1);
@@ -168,7 +169,6 @@
 @media (max-width: 480px) {
   .enter-name-content {
     padding: 32px 24px;
-    margin: 20px;
   }
 
   .enter-name-header h1 {
